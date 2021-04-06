@@ -152,11 +152,11 @@ def grid_ray(x, y, z, cos, sin, sinz, maph):
     return x, y, z
 
 def view_ray(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity):
-    norm = np.sqrt(cos**2 + sin**2 + sinz**2)
-    cos2, sin2, sinz2 = cos/norm, sin/norm, sinz/norm
-    x, y, z = grid_ray(x, y, z, cos2, sin2, sinz2, maph)
-    x, y, z = grid_ray(x, y, z, cos2/20, sin2/20, sinz2/20, maph)
-    
+##    norm = np.sqrt(cos**2 + sin**2 + sinz**2)
+##    cos2, sin2, sinz2 = cos/norm, sin/norm, sinz/norm
+##    x, y, z = grid_ray(x, y, z, cos2, sin2, sinz2, maph)
+##    x, y, z = grid_ray(x, y, z, cos2/20, sin2/20, sinz2/20, maph)
+    x, y, z = grid_ray(x, y, z, cos, sin, sinz, maph)
     while 1: 
         x, y, z = (x + cos, y + sin, z + sinz)
         if z > 1: # ceiling
