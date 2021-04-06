@@ -20,6 +20,11 @@ def main():
     height, width = (int(45*mod), int(56*mod))
     nuc = 4
     pool = multiprocessing.Pool(processes = nuc)
+        
+    ax = plt.figure().gca()
+    img = ax.imshow(np.random.rand(height, width, 3))
+    plt.axis('off'); plt.tight_layout()
+    
     while 1: #main game loop
         rot, rot_v = rotation(rot, rot_v)
         param_values = []
@@ -39,12 +44,11 @@ def main():
 
         for i in range(nuc):
             pixels.append(retorno[i][1])
+            
         pixels = np.reshape(pixels, (height,width,3))
-
         pixels = np.asarray(pixels)/np.sqrt(np.max(pixels))
-        plt.imshow(pixels)#, interpolation='bicubic');
-        plt.axis('off'); plt.tight_layout()
-        plt.draw(); plt.pause(0.0001); plt.clf()
+        img.set_array(pixels); plt.draw(); plt.pause(0.0001)
+
         posx, posy, rot, rot_v, keyout = movement(posx, posy, rot, rot_v, maph)
 
         if (int(posx) == exitx and int(posy) == exity) or keyout == 'esc':
