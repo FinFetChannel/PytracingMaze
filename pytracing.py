@@ -15,7 +15,11 @@ def main():
     mod = 1 # resolution modifier
     inc = 0.05/mod # ray increment
     height, width = (int(45*mod), int(60*mod)) # resolution
-
+    
+    ax = plt.figure().gca()
+    img = ax.imshow(np.random.rand(height, width, 3))
+    plt.axis('off'); plt.tight_layout()
+    
     while 1: # main game loop
         pixels = []
         for j in range(height): # vertical loop 
@@ -33,8 +37,7 @@ def main():
 
         pixels = np.reshape(pixels, (height,width,3))
         pixels = np.asarray(pixels)/np.sqrt(np.max(pixels))
-        plt.imshow(pixels); plt.axis('off'); plt.tight_layout()
-        plt.draw(); plt.pause(0.0001); plt.clf()
+        img.set_array(pixels); plt.draw(); plt.pause(0.0001)
         
         rot, rot_v = rotation(rot, rot_v)
         posx, posy, rot, rot_v, keyout = movement(posx, posy, rot, rot_v, maph)
