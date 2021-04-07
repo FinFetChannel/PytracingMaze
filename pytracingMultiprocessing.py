@@ -147,37 +147,48 @@ def grid_ray(x, y, z, cos, sin, sinz, maph):
                 if (maph[int(x-cos)][int(y)] != 0):
                     break
                 y2 = int(y)
-        
-    x, y, z = (x - cos, y - sin, z - sinz)
-    return x, y, z
+    if z > maph[int(x)][y2] and z < 1:
+        while 1:
+            x, y, z = x + cos, y + sin, z + sinz
+            if (z > 1 or z < 0):
+                break
+            if (x > size or y > size or x < 1 or y < 1):
+                break
+            if maph[int(x)][int(y)] > z:
+                break
+            
+##    x, y, z = (x - cos, y - sin, z - sinz)
+    return x, y, z        
 
 def view_ray(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity):
 ##    norm = np.sqrt(cos**2 + sin**2 + sinz**2)
 ##    cos2, sin2, sinz2 = cos/norm, sin/norm, sinz/norm
 ##    x, y, z = grid_ray(x, y, z, cos2, sin2, sinz2, maph)
-##    x, y, z = grid_ray(x, y, z, cos2/20, sin2/20, sinz2/20, maph)
     x, y, z = grid_ray(x, y, z, cos, sin, sinz, maph)
-    while 1: 
-        x, y, z = (x + cos, y + sin, z + sinz)
-        if z > 1: # ceiling
-            if (x-lx)**2 + (y-ly)**2 < 0.1: #light source
-                c = np.asarray([1,1,1])
-            elif int(np.rad2deg(np.arctan((y-ly)/(x-lx)))/6)%2 ==1:
-                c = np.asarray([.6,1,1])
-            else:
-                c = np.asarray([1,1,0.6])
-            break
-        elif z < 0: # floor
-            if int(x) == exitx and int(y) == exity:
-                c = np.asarray([0,0,.6])
-            elif int(x*2)%2 == int(y*2)%2:
-                c = np.asarray([.1,.1,.1])
-            else:
-                c = np.asarray([.8,.8,.8])
-            break
-        elif z < maph[int(x)][int(y)]:
-            c = np.asarray(mapc[int(x)][int(y)])
-            break
+
+##    while 1: 
+##        x, y, z = (x + cos, y + sin, z + sinz)
+    if z > 1: # ceiling
+        if (x-lx)**2 + (y-ly)**2 < 0.1: #light source
+            c = np.asarray([1,1,1])
+        elif int(np.rad2deg(np.arctan((y-ly)/(x-lx)))/6)%2 ==1:
+            c = np.asarray([.6,1,1])
+        else:
+            c = np.asarray([1,1,0.6])
+##        break
+    elif z < 0: # floor
+        if int(x) == exitx and int(y) == exity:
+            c = np.asarray([0,0,.6])
+        elif int(x*2)%2 == int(y*2)%2:
+            c = np.asarray([.1,.1,.1])
+        else:
+            c = np.asarray([.8,.8,.8])
+##        break
+    elif z < maph[int(x)][int(y)]:
+        c = np.asarray(mapc[int(x)][int(y)])
+##        break
+    else:
+        c = np.asarray([.5,.5,.5])
 
     dtol = np.sqrt((x-lx)**2+(y-ly)**2+(lz-1)**2)
     h = 0.3 + 0.7*np.clip(1/dtol, 0, 1)
