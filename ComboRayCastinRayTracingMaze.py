@@ -4,12 +4,11 @@ import pygame as pg
 from numba import njit
 
 def main():
-    
     size = 25 # size of the map
-    posx, posy, posz = (1, np.random.randint(1, size -1), 0.5)
+    posx, posy, posz = (1.5, np.random.uniform(1, size -1), 0.5)
     rot, rot_v = (np.pi/4, 0)
     lx, ly, lz = (size/2-0.5, size/2-0.5, 1)    
-    mapc, maph, mapr, exitx, exity = maze_generator(posx, posy, size)
+    mapc, maph, mapr, exitx, exity, mapt = maze_generator(int(posx), int(posy), size)
 
     res, res_o = 2, [64, 96, 112, 160, 192, 224]
     width, height, mod, inc, sky, floor = adjust_resol(res_o[res])
@@ -27,7 +26,7 @@ def main():
     pg.mouse.set_visible(False)
     pg.mouse.set_pos([400, 300])
 
-    traceray = False
+    traceray = True
     
     while running:
         
@@ -40,6 +39,7 @@ def main():
                 if event.key == ord('r'): # switch ray tracing
                     traceray = not traceray
                     rot_v = 0
+
                     if traceray:
                         print('Ray tracing on!')
                     else:
@@ -55,7 +55,6 @@ def main():
                         width, height, mod, inc, sky, floor = adjust_resol(res_o[res])
                         
         if traceray:
-            
             param_values = []
             for j in range(height): #vertical loop 
                 rot_j = rot_v + np.deg2rad(24 - j/mod)
@@ -67,7 +66,7 @@ def main():
             
             for i in range(nuc):
                 lista.append([i, param_values[i*int(tam/nuc):(i+1)*int(tam/nuc)],
-                              mapc, maph, lx, ly, lz, exitx, exity, mapr, posx, posy, posz, mod])
+                              mapc, maph, lx, ly, lz, exitx, exity, mapr, posx, posy, posz, mod, mapt])
 
             retorno = pool.map(caster, lista)
 
@@ -81,7 +80,7 @@ def main():
             pixels = np.ones([height, width, 3])
             for i in range(width): #vision loop
                 rot_i = rot + np.deg2rad(i/mod - 30)
-                pixels[0:len(sky),i] = sky*(0.7 + np.sin((rot_i-np.pi/2)/2)**2/3)
+                pixels[0:len(sky),i] = sky*(0.5 + np.sin((rot_i-np.pi/2)/2)**2/2)
                 pixels[int(height/2)+1:height-1,i] = floor[:-1]*(0.75 + np.sin((rot_i+np.pi/2)/2)**2/4)
                 x, y = (posx, posy)
                 sin, cos = (0.05*np.sin(rot_i)/mod, 0.05*np.cos(rot_i)/mod)
@@ -95,7 +94,7 @@ def main():
                     if half !=  None:
                         pixels[int(height/2):int((height+half[0]*height)/2),i] = half[1]
                 if len(ty) > 0:
-                    ty = (np.asarray(ty)*1.01*height/2+height/2).astype(int)
+                    ty = (np.asarray(ty)*1*height/2+height/2).astype(int)
                     ty2, ind = np.unique(ty, return_index=True)
                     pixels[ty2,i] = (np.asarray(tc)[ind]*3 + pixels[ty2,i])/4
 
@@ -107,11 +106,9 @@ def main():
         screen.blit(fps,(10,0))
         pg.display.flip()
 
-        
         # player's movement
         if (int(posx) == exitx and int(posy) == exity):
             break
-
         pressed_keys = pg.key.get_pressed()        
         posx, posy, rot, rot_v = movement(pressed_keys,posx, posy, rot, rot_v, maph, clock.tick()/500)
         pg.mouse.set_pos([400, 300])
@@ -120,8 +117,10 @@ def main():
     pool.close()
     
 def maze_generator(x, y, size):
+    
     mapc = np.random.uniform(0,1, (size,size,3)) 
     mapr = np.random.choice([0, 0, 0, 0, 1], (size,size))
+    mapt = np.random.choice([0, 0, 0, 1, 2], (size,size))
     maph = np.random.choice([0, 0, 0, 0, 0, 0, 0, .2, .4, .6, .8], (size,size))
     maph[0,:], maph[size-1,:], maph[:,0], maph[:,size-1] = (1,1,1,1)
 
@@ -143,7 +142,8 @@ def maze_generator(x, y, size):
                     break
             else:
                 count = count+1
-    return mapc, maph, mapr, exitx, exity
+    mapt[np.where(mapr == 1)] = 0
+    return mapc, maph, mapr, exitx, exity, mapt
 
 def movement(pressed_keys,posx, posy, rot, rot_v, maph, et):
     
@@ -170,32 +170,62 @@ def movement(pressed_keys,posx, posy, rot, rot_v, maph, et):
                                                 
     return posx, posy, rot, rot_v
         
-       
 @njit(fastmath=True)
-def fast_ray(x, y, z, cos, sin, sinz, maph):
+def fast_ray(x, y, z, cos, sin, sinz, maph, mapr, mapc, lx, ly, lz):
+    modr = 1
+    cx, cy = 1, 1
     while 1:
-        x, y, z = x + cos, y + sin, z + sinz
-        if (z > 1 or z < 0):
+        x += cos
+        y += sin
+        z += sinz
+        if (z > 1 or z < 0): # check ceiling and floor
             break
-        if maph[int(x)][int(y)] > z:
-            break        
-    return x, y, z        
-
-def view_ray(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity):
-    
-    x, y, z = fast_ray(x, y, z, cos, sin, sinz, maph)
+        if maph[int(x)][int(y)] > z: # check walls
+            if mapr[int(x)][int(y)]: # check reflections
+                if modr == 1:
+                    cx, cy = int(x), int(y)
+                modr  = modr*0.7
+                if modr < 0.1:
+                    break
+                if abs(z-maph[int(x)][int(y)])<abs(sinz):
+                    sinz = -sinz
+                elif maph[int(x+cos)][int(y-sin)] != 0:
+                    cos = -cos
+                else:
+                    sin = -sin
+                cos, sin, sinz = cos, sin, sinz
+            else:
+                break
+            
     dtol = np.sqrt((x-lx)**2+(y-ly)**2+(lz-1)**2)
+    dx, dy, dz = .1*(lx-x)/dtol, .1*(ly-y)/dtol, .1*(lz-z)/dtol
+    x2, y2, z2, mod = x, y, z, 1
+    
+    while 1:
+        x2 += dx
+        y2 += dy
+        z2 += dz
+        if maph[int(x2)][int(y2)]!= 0 and z2<= maph[int(x2)][int(y2)]:
+            mod = mod*0.9
+            if mod < 0.5:
+                break
+        elif z2 > 1:
+            break
+    return x, y, z, modr, cx, cy, mod, dtol
+
+def view_ray(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity, mapr, mapt):
+    
+    x, y, z, modr, cx, cy, mod, dtol = fast_ray(x, y, z, cos, sin, sinz, maph, mapr, mapc, lx, ly, lz)
 
     if z > 1: # ceiling
-##        c = np.asarray([0.3,0.7,1])
         if (x-lx)**2 + (y-ly)**2 < 0.1: #light source
             c = np.asarray([1,1,1])
         elif int(np.rad2deg(np.arctan((y-ly)/(x-lx)))/6)%2 ==1:
             c = np.asarray([0.3,0.7,1])*(abs(np.sin(y+ly)+np.sin(x+lx))+2)/5
-            c = c + 1 - max(c)
+            c = (c + 1 - max(c))*0.8
         else:
             c = np.asarray([.2,.6,1])*(abs(np.sin(y+ly)+np.sin(x+lx))+2)/5
-            c = c + 1 - max(c)
+            c = (c + 1 - max(c))*0.8
     elif z < 0: # floor
         if int(x) == exitx and int(y) == exity:
             c = np.asarray([0,0,.6])
@@ -205,42 +235,17 @@ def view_ray(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity):
             c = np.asarray([.8,.8,.8])
     elif z < maph[int(x)][int(y)]: #walls
         c = np.asarray(mapc[int(x)][int(y)])
+        c = c*check_texture(x, y, z, mapt[int(x),int(y)])
     else:
         c = np.asarray([.5,.5,.5]) # if all fails
 
-    h = 0.3 + 0.7*np.clip(1/dtol, 0, 1)
-    c = c*h
+    h = 0.3 + 0.7/(dtol+0.001)
+    if h > 1:
+        h = 1
+    if modr < 1:
+        c = modr * (np.asarray(mapc[cx][cy]) + c)/2
+    c = c*h*mod
     return c, x, y, z, dtol
-
-
-@njit(fastmath=True)
-def shadow_ray(x, y, z, lx, ly, lz, maph, c, inc, dtol):
-    dx, dy, dz = inc*5*(lx-x)/dtol, inc*5*(ly-y)/dtol, inc*5*(lz-z)/dtol
-    mod = 1
-    while 1:
-        x, y, z = (x + dx, y + dy, z + dz)
-        if maph[int(x)][int(y)]!= 0 and z<= maph[int(x)][int(y)]:
-            mod = mod*0.9
-            if mod < 0.5:
-                break
-        elif z > 0.9:
-            break
-    return c*mod
-
-def reflection(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity, c, posz, inc, mapr, recur):
-    if abs(z-maph[int(x)][int(y)])<abs(sinz):
-        sinz = -sinz
-    elif maph[int(x+cos)][int(y-sin)] != 0:
-        cos = -cos
-    else:
-        sin = -sin
-    c2, x, y, z, dtol = view_ray(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity)
-    if z < 1:
-        c2 = shadow_ray(x, y, z, lx, ly, lz, maph, c2, inc, dtol)
-    if (mapr[int(x)][int(y)] != 0 and z < 1 and z > 0 and not recur):
-        c2 = reflection(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity, c2, posz, inc, mapr, recur=True)
-    c = (c + c2)/2
-    return c
 
 def caster(lista):
     param_values = lista[1]
@@ -256,6 +261,7 @@ def caster(lista):
     posy = lista[11]
     posz = lista[12]
     mod = lista[13]
+    mapt = lista[14]
     
     pixels = []
     
@@ -270,13 +276,7 @@ def caster(lista):
         sin, cos,  = (inc*np.sin(rot_i), inc*np.cos(rot_i))
         sinz = inc*np.sin(rot_j)
         c, x, y, z, dtol = view_ray(x, y, z, cos, sin, sinz, mapc, lx, ly, lz,
-                                    maph, exitx, exity)
-        if z < 1:
-            c = shadow_ray(x, y, z, lx, ly, lz, maph, c, inc, dtol)
-            if mapr[int(x)][int(y)] != 0 and z > 0:
-                c = reflection(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph,
-                               exitx, exity, c, posz, inc, mapr, recur=False)
-                    
+                                    maph, exitx, exity, mapr, mapt)                   
         pixels.append(c)
 
     return lista[0], pixels
@@ -288,7 +288,6 @@ def ray_caster(x, y, i, ex, ey, maph, mapc, sin, cos, n, half, mod):
         zz = 0.1
     x, y, n, tc, ty = fast_ray_caster(x, y, zz, cos, sin, maph, n, i, ex, ey, mod)
     h , c = shader(n, maph, mapc, sin, cos, x, y, i, mod)
-    
     if maph[int(x)][int(y)] < 0.5 and half == None:
         half = [h, c, n]
         x, y, n, tc2, ty2 = fast_ray_caster(x, y, 0.5, cos, sin, maph, n, i, ex, ey, mod)
@@ -320,15 +319,14 @@ def shader(n, maph, mapc, sin, cos, x, y, i, mod):
     h = np.clip(1/(0.05/mod * n), 0, 1)#*np.cos(np.deg2rad(i/mod-30))), 0, 1)
     c = np.asarray(mapc[int(x)][int(y)])*(0.4 + 0.6 * h)
     
-    if maph[int(x+cos)][int(y-sin)] == 1:
-        c = 0.85*c
-        
-        if maph[int(x-cos)][int(y+sin)] == 1 and sin >0:
-            c = 0.7*c
+    if x%1 < abs(cos) or x%1 > 1 -abs(cos):
+        c = 0.75*c
+    elif y%1 > 1 - abs(sin):
+        c = 0.5*c
+            
     return h, c
 
 def reflection_caster(x, y, i, ex, ey, maph, mapc, sin, cos, n, c, h, half, pixels, ty, tc, height, mod):
-    
     hor = int(height/2)
     hh = int((h*height)/2)
     pixels[hor-hh:hor+hh,i] = np.add(pixels[hor-hh:hor+hh,i], np.asarray([c]*(hh*2)))/2
@@ -364,6 +362,30 @@ def adjust_resol(width):
     floor = np.asarray([gradient,gradient,gradient]).T
     print('Resolution: ', width, height)
     return width, height, mod, inc, sky, floor
+
+def check_texture(x, y, z, tt):
+    if tt == 0:
+        return 1
+    elif tt == 1:
+        np.random.seed(int(x*2+y*147))
+        texture = np.random.uniform(0.7,1, [6,4])
+    else:
+        texture=[[ .95,  .99,  .97, .8],
+                 [ .97,  .95,  .96, .8],
+                 [.8, .8, .8, .8],
+                 [ .93, .8,  .98,  .96],
+                 [ .99, .8,  .97,  .95],
+                 [.8, .8, .8, .8]]
+    
+    if y%1 < 0.05 or y%1 > 0.95:
+        ww = int((x*3)%1*4)
+    else:
+        ww = int((y*3)%1*4)
+    if x%1 < 0.95 and x%1 > 0.05 and y%1 < 0.95 and y%1 > 0.05:
+        zz = int(x*5%1*6)
+    else:
+        zz = int(z*5%1*6)
+    return texture[zz][ww]
 
 if __name__ == '__main__':
     main()
