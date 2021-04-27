@@ -12,8 +12,6 @@ def main():
     res, res_o = 5, [64, 96, 112, 160, 192, 224, 300, 400]
     width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
     
-        
-    bench = []
     running = True
     pg.init()
     font = pg.font.SysFont("Arial", 18)
@@ -70,7 +68,7 @@ def maze_generator(x, y, size):
     mapr = np.random.choice([0, 0, 0, 0, 1], (size,size))
     maps = np.random.choice([0, 0, 0, 0, 1], (size,size))
     mapt = np.random.choice([0, 0, 0, 1, 2], (size,size))
-    maph = np.random.uniform(0.2,1, (size,size))
+    maph = np.random.choice([0, 0, 0, 0, 0, 0, 0, .3, .4, .7, .9], (size,size))
     maph[0,:], maph[size-1,:], maph[:,0], maph[:,size-1] = (1,1,1,1)
     maps[0,:], maps[size-1,:], maps[:,0], maps[:,size-1] = (0,0,0,0)
 
