@@ -1,15 +1,11 @@
-# pytracingMaze
-A very simple 3D maze game made from scratch in python, with crude ray tracing graphics.
+# PytracingMaze
+Simple ray tracing game in Python, based on my [ray casting project](https://github.com/FinFetChannel/RayCastingPythonMaze). As you may have guessed, things started to get a bit heavy for Python, so i had to resort to the Numba library, improving performance by 100x.
 
-First video - 3D ray casting: https://www.youtube.com/watch?v=ravnXknUvvQ
+First video - 3D ray casting (proto ray tracing): https://www.youtube.com/watch?v=ravnXknUvvQ
 
 Second video - reflections and shadows, attempted optimization: https://www.youtube.com/watch?v=IFmw6HM-uF0
 
-Third video - True optimization, textures and spheres: https://www.youtube.com/watch?v=xHk8KCJ-99M
-
-# PyTracingMaze
-
-Simple ray tracing game in Python, based on my [ray casting project](https://github.com/FinFetChannel/RayCastingPythonMaze). As you may have guessed, things started to get a bit heavy for Python, so i had to resort to the Numba library, improving performance by 100x.
+Third video - Proper optimization, textures and spheres: https://www.youtube.com/watch?v=xHk8KCJ-99M
 
 ![Screenshot](caps.png)
 
