@@ -2,7 +2,9 @@
 A very simple 3D maze game made from scratch in python, with crude ray tracing graphics.
 
 First video - 3D ray casting: https://www.youtube.com/watch?v=ravnXknUvvQ
+
 Second video - reflections and shadows, attempted optimization: https://www.youtube.com/watch?v=IFmw6HM-uF0
+
 Third video - True optimization, textures and spheres: https://www.youtube.com/watch?v=xHk8KCJ-99M
 
 # PyTracingMaze
