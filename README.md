@@ -1,16 +1,13 @@
 # pytracingMaze
 A very simple 3D maze game made from scratch in python, with crude ray tracing graphics.
 
-Requires: Numpy, Matplotlib, Pynput and Numba for single thread version, Multiprocessing for better performance.
+First video - 3D ray casting: https://www.youtube.com/watch?v=ravnXknUvvQ
+Second video - reflections and shadows, attempted optimization: https://www.youtube.com/watch?v=IFmw6HM-uF0
+Third video - True optimization, textures and spheres: https://www.youtube.com/watch?v=xHk8KCJ-99M
 
-Video tutorial here: https://youtu.be/IFmw6HM-uF0
+# PyTracingMaze
 
- 
-<img src="https://avatars0.githubusercontent.com/u/76776190?s=460&u=8f3943b46a0f1060a462d8a2922319edd9cd241c&v=4" width="100" height="100">
-
-# RayTracingMazeCppOlcPge
-
-Simple ray tracing game in Pyhton, based on my [ray casting project](https://github.com/FinFetChannel/RayCastingPythonMaze). As you may have guessed, things started to get a bit heavy for Python, so i had to resort to the Numba library, improving performance by 100x.
+Simple ray tracing game in Python, based on my [ray casting project](https://github.com/FinFetChannel/RayCastingPythonMaze). As you may have guessed, things started to get a bit heavy for Python, so i had to resort to the Numba library, improving performance by 100x.
 
 ![Screenshot](caps.png)
 
@@ -46,14 +43,15 @@ The code is a bit messy, following the basic structure:
       * Check inputs
       * Movement
       * Calculate frame (with Numba)
-        * Pixel loop
-          * Initialize Vision ray
-           * Vision Ray loop
-            * Increment until reaching a surface
-            * If hit reflective suface, reflect ray direction, else break out
+         * Pixel loop
+            * Initialize Vision ray
+            * Vision Ray loop
+               * Increment until reaching a surface
+               * If hit reflective suface, reflect ray direction, else break out
+           * Check pixel base color
            * Initialize Shadow ray
            * Shadow Ray loop
-            * Increment until reaching light or blocked by something
+              * Increment until reaching light or blocked by something
            * Store pixel
        * Draw frame
        * Check if reached end of maze
@@ -96,7 +94,7 @@ def main():
 The main game loop first checks for some user inputs (quit or change resolution), then the frame calculation frame is called (super_fast()), returning the pixel values. The pixel values are processed and displayed, after that the players movement is processed, checking if he has reached the exit and then checkin for new inputs.
 
 <details>
-  <summary>Main() and levels</summary>
+  <summary>Main game loop</summary>
 
 ```python
  while running:
@@ -145,8 +143,10 @@ The main game loop first checks for some user inputs (quit or change resolution)
 
 ### Adjust resolution
 
+Support function for easy resolution change
+
 <details>
-  <summary>Complete function</summary>
+  <summary>Adjust resolution</summary>
 
 ```python
 def adjust_resol(width):
@@ -166,7 +166,7 @@ def adjust_resol(width):
 Firstly, a map is generated with blocks in random locations and random features, except on the edges of the map, where there are always full-height prismatic walls. After that, a random walker tries to reach the opposite side of the map, in the process some blocks are removed to give way. When it reaches the other side, the location is marked as the exit of the maze.
 
 <details>
-  <summary>Level setup</summary>
+  <summary>Maze map setup</summary>
 
 ```python
 def maze_generator(x, y, size):
@@ -335,7 +335,7 @@ The simplest case is when a ray hits a prismatic wall, that is, the checks for s
 Reflective prismatic walls simply invert one of the components of direction of the rays. Surfaces facing up invert the z direction, sufaces facing the y direction (paralell to the xz plane) reflect the y direction and the same for the x direction. For that we can probe the blocks to sense which side of the wall we hit. A shading factor is introduced in reflections, making the darker while limiting the maximum number of reflections when a threshhold is reached. The color of the firs mirror is saved for a tinted mirror effect.
 
 <details>
-  <summary>Imports, map and initialization:</summary>
+  <summary>Reflective walls</summary>
 
 ```python
                     elif mapr[int(x)][int(y)]: # check reflections
