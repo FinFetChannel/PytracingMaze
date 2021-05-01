@@ -180,7 +180,7 @@ def shadow_ray(x, y, z, lx, ly, lz, maph, c, inc, dtol):
 def reflection(x, y, z, cos, sin, sinz, mapc, lx, ly, lz, maph, exitx, exity, c, posz, inc, mapr, recur):
     if abs(z-maph[int(x)][int(y)])<abs(sinz):
         sinz = -sinz
-    elif maph[int(x+cos)][int(y-sin)] != 0:
+    elif maph[int(x+cos)][int(y-sin)] == maph[int(x)][int(y)]:
         cos = -cos
     else:
         sin = -sin
