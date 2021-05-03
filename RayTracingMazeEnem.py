@@ -77,7 +77,7 @@ def main():
             et = 0.5
         posx, posy, rot, rot_v, shoot = movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot)
 
-        if int(sx) == int(enx) and int(sy) == int(eny):
+        if (sx - enx)**2 + (sy - eny)**2 < 0.1:
             enx = 0
         mplayer = np.zeros([size, size])
         enx, eny, mplayer, et, shoot, sx, sy, sdir = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer)
