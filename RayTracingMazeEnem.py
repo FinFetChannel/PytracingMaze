@@ -11,7 +11,7 @@ def main():
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps = maze_generator(int(posx), int(posy), size)
     enx, eny = np.random.uniform(5, size -5), np.random.uniform(5, size -5)
     maph[int(enx)][int(eny)] = 0
-    shoot, sx, sy, sdir = 1, -1, -1, rot
+    shoot, sx, sy, sdir = 0, -1, -1, rot
 
     res, res_o = 5, [64, 96, 112, 160, 192, 224, 300, 400]
     width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
@@ -19,8 +19,12 @@ def main():
     running = True
     pg.init()
     font = pg.font.SysFont("Arial", 18)
+    font2 = pg.font.SysFont("Impact", 58)
     screen = pg.display.set_mode((800, 600)) 
-        
+    end = font2.render("Loading, please wait...", 1, pg.Color("white"))
+    screen.blit(end,(50,300))
+    pg.display.update()
+    
     clock = pg.time.Clock()
     pg.mouse.set_visible(False)
     et = 0.1
@@ -60,7 +64,6 @@ def main():
         screen.blit(surf, (0, 0))
         fps = font.render(str(round(clock.get_fps(),1)), 1, pg.Color("coral"))
         screen.blit(fps,(10,0))
-        pg.display.update()
 
         # player's movement
         if (int(posx) == exitx and int(posy) == exity):
@@ -77,15 +80,20 @@ def main():
             et = 0.5
         posx, posy, rot, rot_v, shoot = movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot)
 
-        if (sx - enx)**2 + (sy - eny)**2 < 0.1:
-            enx = 0
+        if shoot and enx != 0:
+            if (sx - enx)**2 + (sy - eny)**2 < 0.1:
+                enx = 0
+        if enx == 0 and np.random.uniform() > 0.999:
+            screen.blit(font2.render("Respawn", 1, pg.Color("white")),(600,50))
+            enx, eny = exitx+0.5, exity+0.5
         mplayer = np.zeros([size, size])
         enx, eny, mplayer, et, shoot, sx, sy, sdir = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer)
 
         pg.mouse.set_pos([400, 300])
+        pg.display.update()
 
-    font = pg.font.SysFont("Impact", 58)
-    end = font.render(endmsg, 1, pg.Color("white"))
+
+    end = font2.render(endmsg, 1, pg.Color("white"))
     screen.blit(end,(50,300))
     pg.display.update()
     pg.time.wait(1000)
@@ -172,8 +180,9 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
             
             modr = 1
             cx, cy, c1r, c2r, c3r = 1, 1, 1, 1, 1
+            mapv = 0
             while 1:
-                if (maph[int(x)][int(y)] == 0): ## LoDev DDA for optimization
+                if (mapv == 0 or (sinz > 0 and z > abs(mapv))): ## LoDev DDA for optimization
                     
                     norm = np.sqrt(cos**2 + sin**2 + sinz**2)
                     rayDirX, rayDirY, rayDirZ = cos/norm + 1e-16, sin/norm + 1e-16, sinz/norm + 1e-16
@@ -225,26 +234,28 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                 x += cos; y += sin; z += sinz
                 if (z > 1 or z < 0): # check ceiling and floor
                     break
-                if  modr < 0.8 and maph[int(x)][int(y)] == -1:
-                    if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
-                        if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
+                mapv = maph[int(x)][int(y)]
+                if mapv < 0:
+                    if  modr < 0.8 and mapv == -1:
+                        if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
+                            if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
+                                break
+                            if z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
+                                break
+                            if z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
+                                break
+                    elif  mapv == -2:
+                        if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
+                            if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
+                                break
+                            if z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
+                                break
+                            if z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
+                                break
+                    elif  mapv == -3:
+                        if ((x-sx)**2 + (y-sy)**2 + (z-0.5)**2 < 0.01):
                             break
-                        if z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
-                            break
-                        if z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
-                            break
-                elif  maph[int(x)][int(y)] == -2:
-                    if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
-                        if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
-                            break
-                        if z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
-                            break
-                        if z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
-                            break
-                elif  maph[int(x)][int(y)] == -3:
-                    if ((x-sx)**2 + (y-sy)**2 + (z-0.5)**2 < 0.01):
-                        break
-                if maph[int(x)][int(y)] > z: # check walls
+                if mapv > z: # check walls
                     if maps[int(x)][int(y)]: # check spheres
                         if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
                             if (mapr[int(x)][int(y)]): # spherical mirror
@@ -300,7 +311,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     else:
                         c1, c2, c3 = .1,.1,.1
                         
-            elif maph[int(x)][int(y)] > 0: # walls
+            elif mapv > 0: # walls
                 c1, c2, c3 = mr[int(x)][int(y)], mg[int(x)][int(y)], mg[int(x)][int(y)]
                 if mapt[int(x)][int(y)]: # textured walls
                     if y%1 < 0.05 or y%1 > 0.95:
@@ -314,7 +325,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     text = texture[zz][ww]
                     c1, c2, c3 = c1*text, c2*text, c3*text
             else:
-                if maph[int(x)][int(y)] == - 3:
+                if mapv == - 3:
                     c1, c2, c3 = 1, 0.7, 0 # shot
                 elif z> 0.45:
                     c1, c2, c3 = 0.6, 0.3, 0.3 # Head
@@ -336,29 +347,10 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
             if z < 1: # shadows
                 cos, sin, sinz = .05*(lx-x)/dtol, .05*(ly-y)/dtol, .05*(lz-z)/dtol
                 while 1:
-                    if  maph[int(x)][int(y)] == -1:
-                        if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
-                            if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
-                                modr = modr*0.9
-                            elif z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
-                                modr = modr*0.9
-                            elif z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
-                                modr = modr*0.9
-                    elif  maph[int(x)][int(y)] == -2:
-                        if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
-                            if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
-                                modr = modr*0.9
-                            elif z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
-                                modr = modr*0.9
-                            elif z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
-                                modr = modr*0.9
-                    elif  maph[int(x)][int(y)] == -3:
-                        if ((x-sx)**2 + (y-sy)**2 + (z-0.5)**2 < 0.01):
-                            modr = modr*0.9
-                    elif maph[int(x)][int(y)] < z and not maps[int(x)][int(y)]: ## LoDev DDA for optimization
-                        
+                    if (mapv == 0 or z > abs(mapv)): ## LoDev DDA for optimization
+                    
                         norm = np.sqrt(cos**2 + sin**2 + sinz**2)
-                        rayDirX, rayDirY, rayDirZ = cos/norm, sin/norm, sinz/norm
+                        rayDirX, rayDirY, rayDirZ = cos/norm + 1e-16, sin/norm + 1e-16, sinz/norm + 1e-16
                         
                         mapX, mapY = int(x), int(y)
 
@@ -401,12 +393,32 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                         x = x + rayDirX*dist - cos/2
                         y = y + rayDirY*dist - sin/2
                         z = z + rayDirZ*dist - sinz/2
-                        
-                        ## end of LoDev DDA
-                        
+                    
+                    ## end of LoDev DDA
                     x += cos; y += sin; z += sinz
-
-                    if maph[int(x)][int(y)]!= 0 and z<= maph[int(x)][int(y)]:      
+                    mapv = maph[int(x)][int(y)]
+                    if mapv < 0:
+                        if  mapv == -1:
+                            if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
+                                if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
+                                    modr = modr*0.9
+                                elif z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
+                                    modr = modr*0.9
+                                elif z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
+                                    modr = modr*0.9
+                        elif  mapv == -2:
+                            if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
+                                if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
+                                    modr = modr*0.9
+                                elif z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
+                                    modr = modr*0.9
+                                elif z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
+                                    modr = modr*0.9
+                        elif  mapv == -3:
+                            if ((x-sx)**2 + (y-sy)**2 + (z-0.5)**2 < 0.01):
+                                modr = modr*0.9
+                                
+                    if mapv > 0 and z <= mapv :      
                         if maps[int(x)][int(y)]: # check spheres
                             if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
                                 modr = modr*0.9
