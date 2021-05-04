@@ -11,7 +11,7 @@ def main():
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps = maze_generator(int(posx), int(posy), size)
     enx, eny = np.random.uniform(5, size -5), np.random.uniform(5, size -5)
     maph[int(enx)][int(eny)] = 0
-    shoot, sx, sy, sdir = 0, -1, -1, rot
+    shoot, sx, sy, sdir = 1, -1, -1, rot
 
     res, res_o = 5, [64, 96, 112, 160, 192, 224, 300, 400]
     width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
@@ -21,7 +21,9 @@ def main():
     font = pg.font.SysFont("Arial", 18)
     font2 = pg.font.SysFont("Impact", 58)
     screen = pg.display.set_mode((800, 600)) 
-    end = font2.render("Loading, please wait...", 1, pg.Color("white"))
+    end = font2.render("FinFET's PyTracing Maze", 1, pg.Color("red"))
+    screen.blit(end,(50,100))
+    end = font2.render("Loading, please wait...", 1, pg.Color("blue"))
     screen.blit(end,(50,300))
     pg.display.update()
     
@@ -30,7 +32,8 @@ def main():
     et = 0.1
     mplayer = np.zeros([size, size])
     enx, eny, mplayer, et, shoot, sx, sy, sdir = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer)
-
+    sstart = None
+    
     while running:
         
         for event in pg.event.get():
@@ -80,9 +83,12 @@ def main():
             et = 0.5
         posx, posy, rot, rot_v, shoot = movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot)
 
-        if shoot and enx != 0:
-            if (sx - enx)**2 + (sy - eny)**2 < 0.1:
-                enx = 0
+        if shoot:
+            if sstart == None:
+                sstart = pg.time.get_ticks()
+            elif pg.time.get_ticks() - sstart > 1000:
+                shoot, sx, sstart = 0, -1, None
+                
         if enx == 0 and np.random.uniform() > 0.999:
             screen.blit(font2.render("Respawn", 1, pg.Color("white")),(600,50))
             enx, eny = exitx+0.5, exity+0.5
@@ -236,7 +242,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     break
                 mapv = maph[int(x)][int(y)]
                 if mapv < 0:
-                    if  modr < 0.8 and mapv == -1:
+                    if  modr < 0.8 and (mapv == -1 or mapv == -4):
                         if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
                             if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
                                 break
@@ -244,7 +250,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                                 break
                             if z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
                                 break
-                    elif  mapv == -2:
+                    elif  mapv == -2 or mapv == -5:
                         if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
                             if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
                                 break
@@ -252,8 +258,8 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                                 break
                             if z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
                                 break
-                    elif  mapv == -3:
-                        if ((x-sx)**2 + (y-sy)**2 + (z-0.5)**2 < 0.01):
+                    elif  mapv < -2:
+                        if ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2 < 0.01):
                             break
                 if mapv > z: # check walls
                     if maps[int(x)][int(y)]: # check spheres
@@ -325,7 +331,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     text = texture[zz][ww]
                     c1, c2, c3 = c1*text, c2*text, c3*text
             else:
-                if mapv == - 3:
+                if mapv < - 2:
                     c1, c2, c3 = 1, 0.7, 0 # shot
                 elif z> 0.45:
                     c1, c2, c3 = 0.6, 0.3, 0.3 # Head
@@ -398,7 +404,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     x += cos; y += sin; z += sinz
                     mapv = maph[int(x)][int(y)]
                     if mapv < 0:
-                        if  mapv == -1:
+                        if  mapv == -1 or mapv == -4:
                             if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
                                 if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
                                     modr = modr*0.9
@@ -406,7 +412,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                                     modr = modr*0.9
                                 elif z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
                                     modr = modr*0.9
-                        elif  mapv == -2:
+                        elif  mapv == -2 or mapv == -5:
                             if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
                                 if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
                                     modr = modr*0.9
@@ -414,8 +420,8 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                                     modr = modr*0.9
                                 elif z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
                                     modr = modr*0.9
-                        elif  mapv == -3:
-                            if ((x-sx)**2 + (y-sy)**2 + (z-0.5)**2 < 0.01):
+                        elif  mapv < -2:
+                            if ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2 < 0.01):
                                 modr = modr*0.9
                                 
                     if mapv > 0 and z <= mapv :      
@@ -447,28 +453,7 @@ def adjust_resol(width):
 
 @njit(fastmath=True)
 def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer):
-    if enx != 0:
-        dtp = np.sqrt((enx-posx)**2 + (eny-posy)**2)
-        cos, sin = .05*(posx-enx)/dtp, .05*(posy-eny)/dtp
-        move = 1; moves = int(dtp/0.05)
-        x, y = enx, eny
-        for i in range(moves):
-            x += cos; y += sin
-            if maph[int(x)][int(y)] > 0:
-                move = 0
-                break
-        if move:
-            enx += 15*et*cos; eny += 15*et*sin
-            
-        if maph[int(enx-0.1)][int(eny)] == 0:
-            mplayer[int(enx-0.1)][int(eny)] = -2
-        if maph[int(enx+0.1)][int(eny)] == 0:
-            mplayer[int(enx+0.1)][int(eny)] = -2
-        if maph[int(enx)][int(eny-0.1)] == 0:
-            mplayer[int(enx)][int(eny-0.1)] = -2
-        if maph[int(enx)][int(eny+0.1)] == 0:
-            mplayer[int(enx)][int(eny+0.1)] = -2
-        
+
     if maph[int(posx-0.1)][int(posy)] == 0:
         mplayer[int(posx-0.1)][int(posy)] = -1
     if maph[int(posx+0.1)][int(posy)] == 0:
@@ -478,20 +463,43 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer):
     if maph[int(posx)][int(posy+0.1)] == 0:
         mplayer[int(posx)][int(posy+0.1)] = -1
         
+    if enx != 0:
+        if shoot:
+            if (sx - enx)**2 + (sy - eny)**2 < 0.05:
+                shoot = 0
+                enx = 0
+        dtp = 1.2*np.sqrt((enx-posx)**2 + (eny-posy)**2)
+        if dtp < 10:
+            cos, sin = (posx-enx)/dtp, (posy-eny)/dtp
+            
+            testx = et*cos + np.random.normal(0,.05)
+            testy =  et*sin + np.random.normal(0,.05)
+            if maph[int(enx+testx)][int(eny+testy)] == 0:
+                enx += testx; eny += testy
+                
+            if maph[int(enx-0.1)][int(eny)] == 0:
+                mplayer[int(enx-0.1)][int(eny)] = -2
+            if maph[int(enx+0.1)][int(eny)] == 0:
+                mplayer[int(enx+0.1)][int(eny)] = -2
+            if maph[int(enx)][int(eny-0.1)] == 0:
+                mplayer[int(enx)][int(eny-0.1)] = -2
+            if maph[int(enx)][int(eny+0.1)] == 0:
+                mplayer[int(enx)][int(eny+0.1)] = -2
+        
     if shoot:
         if sx == -1:
-            sx, sy, sdir = posx + np.cos(rot)/3, posy + np.sin(rot)/3, rot
+            sx, sy, sdir = posx + np.cos(rot)/3, posy + np.sin(rot)/3, rot+np.random.normal(0,.05)
         sx, sy = sx + 2*et*np.cos(sdir), sy + 2*et*np.sin(sdir)
         if maph[int(sx)][int(sy)] != 0:
             shoot, sx, sy = 0, -1, -1
         if maph[int(sx-0.1)][int(sy)] == 0:
-            mplayer[int(posx-0.1)][int(sy)] = -3
+            mplayer[int(sx-0.1)][int(sy)] += -3
         if maph[int(sx+0.1)][int(sy)] == 0:
-            mplayer[int(sx+0.1)][int(sy)] = -3
+            mplayer[int(sx+0.1)][int(sy)] += -3
         if maph[int(sx)][int(sy-0.1)] == 0:
-            mplayer[int(posx)][int(sy-0.1)] = -3
+            mplayer[int(sx)][int(sy-0.1)] += -3
         if maph[int(sx)][int(sy+0.1)] == 0:
-            mplayer[int(sx)][int(sy+0.1)] = -3
+            mplayer[int(sx)][int(sy+0.1)] += -3
     if maph[int(sx)][int(sy)] != 0:
         shoot, sx, sy = 0, -1, -1
     mplayer = maph + mplayer
