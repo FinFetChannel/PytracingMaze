@@ -7,9 +7,9 @@ def main():
     posx, posy, posz = 1.5, np.random.uniform(1, size -1), 0.5
     
     rot, rot_v = (np.pi/4, 0)
-    lx, ly, lz = (size/2-0.5, size/2-0.5, 1)    
+    lx, ly, lz = (size*20, size*30, 1000)    
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps = maze_generator(int(posx), int(posy), size)
-    enx, eny = np.random.uniform(5, size -5), np.random.uniform(5, size -5)
+    enx, eny = np.random.uniform(size/2-5, size/2+5), np.random.uniform(size/2-5, size/2+5)
     maph[int(enx)][int(eny)] = 0
     shoot, sx, sy, sdir = 1, -1, -1, rot
 
@@ -35,7 +35,7 @@ def main():
     sstart = None
     
     while running:
-        
+##        print(maph)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 endmsg = "It's not all fun and games..."
@@ -72,10 +72,6 @@ def main():
         if (int(posx) == exitx and int(posy) == exity):
             endmsg = "You escaped safely"
             break
-
-        if (int(posx) == int(enx) and int(posy) == int(eny)):
-            endmsg = "You died"
-            break
         
         pressed_keys = pg.key.get_pressed()
         et = clock.tick()/500
@@ -92,6 +88,11 @@ def main():
         if enx == 0 and np.random.uniform() > 0.999:
             screen.blit(font2.render("Respawn", 1, pg.Color("white")),(600,50))
             enx, eny = exitx+0.5, exity+0.5
+        else:
+            if (int(posx) == int(enx) and int(posy) == int(eny)):
+                endmsg = "You died"
+                break
+
         mplayer = np.zeros([size, size])
         enx, eny, mplayer, et, shoot, sx, sy, sdir = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer)
 
@@ -113,7 +114,7 @@ def maze_generator(x, y, size):
     mapr = np.random.choice([0, 0, 0, 0, 1], (size,size))
     maps = np.random.choice([0, 0, 0, 0, 1], (size,size))
     mapt = np.random.choice([0, 0, 0, 1, 2], (size,size))
-    maph = np.random.uniform(0.2,1, (size,size))
+    maph = np.random.choice([0, 0, 0, 0, 0, 0.3, 0.4, 0.6, 0.8, .99, .99, .99], (size,size))
     maph[0,:], maph[size-1,:], maph[:,0], maph[:,size-1] = (1,1,1,1)
     maps[0,:], maps[size-1,:], maps[:,0], maps[:,size-1] = (0,0,0,0)
 
@@ -167,7 +168,7 @@ def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot):
         
 @njit(fastmath=True)
 def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy):
-
+        
     texture=[[ .95,  .99,  .97, .8], # brick wall
              [ .97,  .95,  .96, .85],
              [.8, .85, .8, .8],
@@ -178,17 +179,23 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
     idx = 0
     for j in range(height): #vertical loop 
         rot_j = rot_v + np.deg2rad(24 - j/mod)
+        inv = 1
+##        if abs(rot_j) > np.pi/2:
+##            inv = -1
+        sinzo = inc*np.sin(rot_j)
         for i in range(width): #horizontal vision loop
             rot_i = rot + np.deg2rad(i/mod - 30)
             x, y, z = (posx, posy, posz)
-            sin, cos,  = (inc*np.sin(rot_i), inc*np.cos(rot_i))
-            sinz = inc*np.sin(rot_j)
+            sin, cos,  = (inv*inc*np.sin(rot_i), inv*inc*np.cos(rot_i))
+            sinz = sinzo
+            
             
             modr = 1
             cx, cy, c1r, c2r, c3r = 1, 1, 1, 1, 1
-            mapv = 0
+            mapv, shot, enem = 0, 0, 0
+           
             while 1:
-                if (mapv == 0 or (sinz > 0 and z > abs(mapv))): ## LoDev DDA for optimization
+                if (mapv == 0 or (sinz > 0 and (z > mapv or (mapv==6 and (z>0.4 or z <0.2)) or(z > 0.57 and mapv > 1)))): ## LoDev DDA for optimization
                     
                     norm = np.sqrt(cos**2 + sin**2 + sinz**2)
                     rayDirX, rayDirY, rayDirZ = cos/norm + 1e-16, sin/norm + 1e-16, sinz/norm + 1e-16
@@ -241,27 +248,28 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                 if (z > 1 or z < 0): # check ceiling and floor
                     break
                 mapv = maph[int(x)][int(y)]
-                if mapv < 0:
-                    if  modr < 0.8 and (mapv == -1 or mapv == -4):
-                        if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
-                            if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
-                                break
-                            if z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
-                                break
-                            if z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
-                                break
-                    elif  mapv == -2 or mapv == -5:
-                        if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
-                            if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
-                                break
-                            if z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
-                                break
-                            if z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
-                                break
-                    elif  mapv < -2:
-                        if ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2 < 0.01):
+                if mapv > 1 and z < 0.57:
+                    if  mapv == 2:
+                        if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
                             break
-                if mapv > z: # check walls
+                        if z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
+                            break
+                        if z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
+                                break
+                    elif  mapv == 3 or mapv == 9:
+                        enem = 1
+                        if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
+                            break
+                        if z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
+                            break
+                        if z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
+                            break
+                    elif  z < 0.4 and z > 0.2:
+                        if ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2 < 0.01):
+                            shot = 1
+                            break
+
+                if mapv > z and mapv < 2: # check walls
                     if maps[int(x)][int(y)]: # check spheres
                         if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
                             if (mapr[int(x)][int(y)]): # spherical mirror
@@ -270,13 +278,12 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                                 modr = modr*0.7
                                 if (modr < 0.2):
                                     break
-                                if (abs(maph[int(x)][int(y)] - z) <= abs(sinz)): ## horizontal surface
+                                if (mapv - z <= abs(sinz) ): ## horizontal surface
                                     sinz = -sinz
                                 else:
-                                    nx = (x-int(x)-0.5)/0.5; ny = (y-int(y)-0.5)/0.5; nz =(z-0.5)/0.5
+                                    nx = (x-int(x)-0.5)/0.5; ny = (y-int(y)-0.5)/0.5; nz =(z-int(z)-0.5)/0.5
                                     dot = 2*(cos*nx + sin*ny + sinz*nz)
-                                    cos = (cos - nx*dot); sin = (sin - ny*dot); sinz = (sinz - nz*dot)
-                
+                                    cos = (cos - nx*dot); sin = (sin - ny*dot); sinz = (sinz - nz*dot)                
                                     x += cos; y += sin; z += sinz
                             else:
                                 break
@@ -298,14 +305,23 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                         break
 
                 
-            if z > 1: # ceiling
-                sh =(abs(np.sin(y+ly)+np.sin(x+lx))+6)/8
-                if (x-lx)**2 + (y-ly)**2 < 0.1: #light source
+            if z > 0.99: # ceiling
+                deltaDistZ = (lz-z)*deltaDistZ
+                x += deltaDistZ*rayDirX; y += deltaDistZ*rayDirY; z += deltaDistZ*rayDirZ
+                dtol = np.sqrt((x-lx)**2+(y-ly)**2+(lz-z)**2)
+                
+                if dtol < 50: #light source
                     c1, c2, c3 = 1, 1, 1
-                elif int(np.rad2deg(np.arctan((y-ly)/(x-lx)))/6)%2 ==1:
-                    c1, c2, c3 = 0.3*sh, 0.7*sh, 1*sh
+##                elif int(np.rad2deg(np.arctan((y-ly)/(x-lx)))/6)%2 ==1:
+##                    c1, c2, c3 = 0.3*sh, 0.9*sh, 1*sh
                 else:
-                    c1, c2, c3 = .2*sh, .6*sh, 1*sh
+                    sh = 0.4 + (abs(np.sin(y/50+ly)+np.sin(x/50+lx))+6)/dtol #/8
+                    if sh > 1:
+                        sh = 1
+                    if int(np.rad2deg(np.arctan((y-ly)/(x-lx)))/6)%2 ==1:
+                        c1, c2, c3 = 0.3*sh, 0.9*sh, 1*sh
+                    else:
+                        c1, c2, c3 = .1*sh, .7*sh, 1*sh
                     
             elif z < 0: # floor
                 
@@ -317,7 +333,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     else:
                         c1, c2, c3 = .1,.1,.1
                         
-            elif mapv > 0: # walls
+            elif mapv < 2: # walls
                 c1, c2, c3 = mr[int(x)][int(y)], mg[int(x)][int(y)], mg[int(x)][int(y)]
                 if mapt[int(x)][int(y)]: # textured walls
                     if y%1 < 0.05 or y%1 > 0.95:
@@ -331,114 +347,114 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     text = texture[zz][ww]
                     c1, c2, c3 = c1*text, c2*text, c3*text
             else:
-                if mapv < - 2:
-                    c1, c2, c3 = 1, 0.7, 0 # shot
+                if shot:
+                    c1, c2, c3 = 1, 0.5 , 0 # shot
                 elif z> 0.45:
                     c1, c2, c3 = 0.6, 0.3, 0.3 # Head
                 elif z > 0.3:
                     c1, c2, c3 = 0.3, 0.5, 0.5 # Chest
                 else:
-                    if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
-                        c1, c2, c3 = 0.2, 0.2, 1 # Roller blue
-                    else:
+                    if enem:
                         c1, c2, c3 = 1, 0.2, 0.2 # Roller red
+                    else:
+                        c1, c2, c3 = 0.2, 0.2, 1 # Roller blue
 
             if modr < 1:
                 c1r, c2r, c3r = mr[cx][cy], mg[cx][cy], mg[cx][cy]
 
-            dtol = np.sqrt((x-lx)**2+(y-ly)**2+(lz-1)**2)
-            modr = modr*(0.6 + 0.4/(dtol+0.001))
-            if modr > 1:
-                modr = 1
-            if z < 1: # shadows
-                cos, sin, sinz = .05*(lx-x)/dtol, .05*(ly-y)/dtol, .05*(lz-z)/dtol
-                while 1:
-                    if (mapv == 0 or z > abs(mapv)): ## LoDev DDA for optimization
-                    
-                        norm = np.sqrt(cos**2 + sin**2 + sinz**2)
-                        rayDirX, rayDirY, rayDirZ = cos/norm + 1e-16, sin/norm + 1e-16, sinz/norm + 1e-16
-                        
-                        mapX, mapY = int(x), int(y)
-
-                        deltaDistX, deltaDistY, deltaDistZ= abs(1/rayDirX), abs(1/rayDirY), abs(1/rayDirZ)
-
-                        if (rayDirX < 0):
-                            stepX, sideDistX = -1, (x - mapX) * deltaDistX
-                        else:
-                            stepX, sideDistX = 1, (mapX + 1.0 - x) * deltaDistX
-                            
-                        if (rayDirY < 0):
-                            stepY, sideDistY = -1, (y - mapY) * deltaDistY
-                        else:
-                            stepY, sideDistY = 1, (mapY + 1 - y) * deltaDistY
-
-                        if (rayDirZ < 0):
-                            sideDistZ = z*deltaDistZ;
-                        else:
-                            sideDistZ = (1-z)*deltaDistZ
-
-                        while (1):
-                            if (sideDistX < sideDistY):
-                                sideDistX += deltaDistX; mapX += stepX
-                                dist = sideDistX; side = 0
-                            else:
-                                sideDistY += deltaDistY; mapY += stepY
-                                dist = sideDistY; side = 1
-
-                            if (maph[mapX][mapY] != 0):
-                                break
-                                
-                        if (side):
-                            dist = dist - deltaDistY
-                        else:
-                            dist = dist - deltaDistX
-                            
-                        if (dist > sideDistZ):
-                            dist = sideDistZ
-
-                        x = x + rayDirX*dist - cos/2
-                        y = y + rayDirY*dist - sin/2
-                        z = z + rayDirZ*dist - sinz/2
-                    
-                    ## end of LoDev DDA
-                    x += cos; y += sin; z += sinz
+            if not shot and z < 1:
+                dtol = np.sqrt((x-lx)**2+(y-ly)**2+(z-lz)**2)
+                dtp = np.sqrt((x-posx)**2+(y-posy)**2+(z-posz)**2)
+                modr = modr*(0.3 + 0.7/((dtp+0.01)))
+                if modr > 1:
+                    modr = 1
+                if z < 1: # shadows
+                    cos, sin, sinz = .05*(lx-x)/dtol, .05*(ly-y)/dtol, .05*(lz-z)/dtol
+                    #x += 10*cos; y += 10*sin; z += 10*sinz
                     mapv = maph[int(x)][int(y)]
-                    if mapv < 0:
-                        if  mapv == -1 or mapv == -4:
-                            if ((x-posx)**2 + (y-posy)**2 < 0.1 and z < 0.6):
-                                if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
-                                    modr = modr*0.9
-                                elif z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
-                                    modr = modr*0.9
-                                elif z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
-                                    modr = modr*0.9
-                        elif  mapv == -2 or mapv == -5:
-                            if ((x-enx)**2 + (y-eny)**2 < 0.1 and z < 0.6):
+                    while 1:
+                        if (mapv == 0 or (z > mapv) or mapv == 6 or (z > 0.57 and mapv > 1)): ## LoDev DDA for optimization
+                        
+                            norm = np.sqrt(cos**2 + sin**2 + sinz**2)
+                            rayDirX, rayDirY, rayDirZ = cos/norm + 1e-16, sin/norm + 1e-16, sinz/norm + 1e-16
+                            
+                            mapX, mapY = int(x), int(y)
+
+                            deltaDistX, deltaDistY, deltaDistZ= abs(1/rayDirX), abs(1/rayDirY), abs(1/rayDirZ)
+
+                            if (rayDirX < 0):
+                                stepX, sideDistX = -1, (x - mapX) * deltaDistX
+                            else:
+                                stepX, sideDistX = 1, (mapX + 1.0 - x) * deltaDistX
+                                
+                            if (rayDirY < 0):
+                                stepY, sideDistY = -1, (y - mapY) * deltaDistY
+                            else:
+                                stepY, sideDistY = 1, (mapY + 1 - y) * deltaDistY
+
+                            if (rayDirZ < 0):
+                                sideDistZ = z*deltaDistZ;
+                            else:
+                                sideDistZ = (1-z)*deltaDistZ
+
+                            while (1):
+                                if (sideDistX < sideDistY):
+                                    sideDistX += deltaDistX; mapX += stepX
+                                    dist = sideDistX; side = 0
+                                else:
+                                    sideDistY += deltaDistY; mapY += stepY
+                                    dist = sideDistY; side = 1
+
+                                if (maph[mapX][mapY] != 0):
+                                    break
+                                    
+                            if (side):
+                                dist = dist - deltaDistY
+                            else:
+                                dist = dist - deltaDistX
+                                
+                            if (dist > sideDistZ):
+                                dist = sideDistZ
+
+                            x = x + rayDirX*dist - cos/2
+                            y = y + rayDirY*dist - sin/2
+                            z = z + rayDirZ*dist - sinz/2
+                        
+                        ## end of LoDev DDA
+                        x += cos; y += sin; z += sinz
+                        mapv = maph[int(x)][int(y)]
+                        if z < 0.57 and mapv > 1:
+                            if  mapv == 3 or mapv == 9:
                                 if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
                                     modr = modr*0.9
                                 elif z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
                                     modr = modr*0.9
                                 elif z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
                                     modr = modr*0.9
-                        elif  mapv < -2:
-                            if ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2 < 0.01):
+                            else:
+                                if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
+                                    modr = modr*0.9
+                                elif z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
+                                    modr = modr*0.9
+                                elif z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
+                                    modr = modr*0.9
+
+                                    
+                        if mapv > 0 and z <= mapv and mapv < 2:      
+                            if maps[int(x)][int(y)]: # check spheres
+                                if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
+                                    modr = modr*0.9
+                            else:    
                                 modr = modr*0.9
                                 
-                    if mapv > 0 and z <= mapv :      
-                        if maps[int(x)][int(y)]: # check spheres
-                            if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
-                                modr = modr*0.9
-                        else:    
-                            modr = modr*0.9
-                            
-                    if z > 1 or modr < 0.3:
-                        break
+                        if z > 1 or modr < 0.2:
+                            break
                     
             pr[idx] = modr*np.sqrt(c1*c1r)
             pg[idx] = modr*np.sqrt(c2*c2r)
             pb[idx] = modr*np.sqrt(c3*c3r)
             idx += 1
-
+        
     return pr, pg, pb
 
 def adjust_resol(width):
@@ -453,55 +469,34 @@ def adjust_resol(width):
 
 @njit(fastmath=True)
 def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer):
-
-    if maph[int(posx-0.1)][int(posy)] == 0:
-        mplayer[int(posx-0.1)][int(posy)] = -1
-    if maph[int(posx+0.1)][int(posy)] == 0:
-        mplayer[int(posx+0.1)][int(posy)] = -1
-    if maph[int(posx)][int(posy-0.1)] == 0:
-        mplayer[int(posx)][int(posy-0.1)] = -1
-    if maph[int(posx)][int(posy+0.1)] == 0:
-        mplayer[int(posx)][int(posy+0.1)] = -1
-        
+    
     if enx != 0:
-        if shoot:
-            if (sx - enx)**2 + (sy - eny)**2 < 0.05:
-                shoot = 0
-                enx = 0
         dtp = 1.2*np.sqrt((enx-posx)**2 + (eny-posy)**2)
         if dtp < 10:
             cos, sin = (posx-enx)/dtp, (posy-eny)/dtp
             
-            testx = et*cos + np.random.normal(0,.05)
-            testy =  et*sin + np.random.normal(0,.05)
+            testx = et*(cos + np.random.normal(0,.5))
+            testy =  et*(sin + np.random.normal(0,.5))
             if maph[int(enx+testx)][int(eny+testy)] == 0:
                 enx += testx; eny += testy
-                
-            if maph[int(enx-0.1)][int(eny)] == 0:
-                mplayer[int(enx-0.1)][int(eny)] = -2
-            if maph[int(enx+0.1)][int(eny)] == 0:
-                mplayer[int(enx+0.1)][int(eny)] = -2
-            if maph[int(enx)][int(eny-0.1)] == 0:
-                mplayer[int(enx)][int(eny-0.1)] = -2
-            if maph[int(enx)][int(eny+0.1)] == 0:
-                mplayer[int(enx)][int(eny+0.1)] = -2
+        if maph[int(enx)][int(eny)] == 0:
+            mplayer[int(enx)][int(eny)] = 3
         
     if shoot:
+        if (sx - enx)**2 + (sy - eny)**2 < 0.1:
+                shoot, sx, enx = 0, -1, 0
         if sx == -1:
             sx, sy, sdir = posx + np.cos(rot)/3, posy + np.sin(rot)/3, rot+np.random.normal(0,.05)
         sx, sy = sx + 2*et*np.cos(sdir), sy + 2*et*np.sin(sdir)
         if maph[int(sx)][int(sy)] != 0:
             shoot, sx, sy = 0, -1, -1
-        if maph[int(sx-0.1)][int(sy)] == 0:
-            mplayer[int(sx-0.1)][int(sy)] += -3
-        if maph[int(sx+0.1)][int(sy)] == 0:
-            mplayer[int(sx+0.1)][int(sy)] += -3
-        if maph[int(sx)][int(sy-0.1)] == 0:
-            mplayer[int(sx)][int(sy-0.1)] += -3
-        if maph[int(sx)][int(sy+0.1)] == 0:
-            mplayer[int(sx)][int(sy+0.1)] += -3
+        else:    
+            mplayer[int(sx)][int(sy)] += 6    
+
     if maph[int(sx)][int(sy)] != 0:
         shoot, sx, sy = 0, -1, -1
+        
+    mplayer[int(posx)][int(posy)] =2
     mplayer = maph + mplayer
     return(enx, eny, mplayer, et, shoot, sx, sy, sdir)
 
