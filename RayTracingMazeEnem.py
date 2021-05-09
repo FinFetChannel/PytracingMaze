@@ -23,7 +23,7 @@ def main():
     font = pg.font.SysFont("Arial", 18)
     font2 = pg.font.SysFont("Impact", 58)
     screen = pg.display.set_mode((800, 600))
-    rr, gg, bb = np.linspace(0,0.8, width*height), np.linspace(1,.8, width*height), np.linspace(1,0.1, width*height)
+    rr, gg, bb = np.linspace(0,0.8, width*height), np.linspace(0.5,.1, width*height), np.linspace(1,0.1, width*height)
     pixels = np.dstack((rr,gg,bb))
     pixels = np.reshape(pixels, (height,width,3))
     surf = pg.surfarray.make_surface((np.rot90(pixels*255)).astype('uint8'))
@@ -108,8 +108,12 @@ def main():
                 shoot, sx, sstart = 0, -1, None
                 
         if enx == 0 and np.random.uniform() > 0.999:
-            screen.blit(font2.render("Respawn", 1, pg.Color("white")),(600,50))
-            enx, eny = exitx+0.5, exity+0.5
+            screen.blit(font2.render("Respawn", 1, pg.Color("red")),(500,50))
+            pg.display.update()
+            while 1:
+                enx, eny = np.random.uniform(size/2+5, size-2 ), np.random.uniform(1, size-2)
+                if maph[int(enx)][int(eny)] == 0:
+                    break
             seenx, seeny = enx, eny
         else:
             if (int(posx) == int(enx) and int(posy) == int(eny)):
