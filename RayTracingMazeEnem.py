@@ -23,14 +23,14 @@ def main():
     font2 = pg.font.SysFont("Impact", 48)
     screen = pg.display.set_mode((800, 600))
     rr, gg, bb = np.linspace(0,0.8, width*height), np.linspace(0.5,.1, width*height), np.linspace(1,0.1, width*height)
-    pixelsp = np.dstack((rr,gg,bb))
-    pixelsp = np.reshape(pixelsp, (height,width,3))
-    surf = pg.surfarray.make_surface((np.rot90(pixelsp*255)).astype('uint8'))
+    pixels = np.dstack((rr,gg,bb))
+    pixels = np.reshape(pixels, (height,width,3))
+    surf = pg.surfarray.make_surface((np.rot90(pixels*255)).astype('uint8'))
     surf = pg.transform.scale(surf, (750, 550))
     screen.blit(surf, (25, 25))
     screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("black")),(45,95))
     screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("white")),(50,100))
-    screen.blit(font2.render("Loading, please wait...", 1, pg.Color("black")),(50,300))
+    screen.blit(font2.render(" Loading, please wait... ", 1, pg.Color("black"), pg.Color("grey")),(50,300))
     pg.display.update()
     
     clock = pg.time.Clock()
@@ -56,13 +56,13 @@ def main():
         count += 1
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-                endmsg = "It's not all fun and games..."
+                endmsg = " It's not all fun and games... "
                 pg.mixer.Channel(1).play(failfx)
                 running = False
             if event.type == pg.KEYDOWN:
                 if event.key == ord('p'): # pause
                     if not pause:
-                        endmsg = "Game paused"
+                        endmsg = " Game paused "
                     pause = not(pause)
                 if pause and event.key == ord('n'): # new game
                     pause = not(pause)
@@ -110,7 +110,7 @@ def main():
 
             # player's movement
             if (int(posx) == exitx and int(posy) == exity):
-                endmsg = "You escaped safely!"
+                endmsg = " You escaped safely! "
                 pg.mixer.Channel(1).play(successfx)
                 pause = 1
             
@@ -134,7 +134,7 @@ def main():
                     pg.mixer.Channel(1).play(killfx)
                     run = True
                 if np.random.uniform() > 0.999:
-                    screen.blit(font2.render("Enemy Respawning!", 1, pg.Color("red")),(300,50))
+                    screen.blit(font2.render(" Enemy Respawning! ", 1, pg.Color("red"), pg.Color("grey")),(300,50))
                     pg.mixer.Channel(1).play(respawnfx)
                     pg.display.update()
                     while 1:
@@ -145,7 +145,7 @@ def main():
                     seenx, seeny = enx-2, eny-2
             else:
                 if (int(posx) == int(enx) and int(posy) == int(eny)):
-                    endmsg = "You died!"
+                    endmsg = " You died! "
                     pg.mixer.Channel(1).play(failfx)
                     enx, eny, seenx, seeny  = 0, 0, 0, 0
                     pause = 1
@@ -164,16 +164,14 @@ def main():
                 run = False
                 pg.mixer.Channel(1).play(runfx)
         else:
-            clock.tick(60)
-            surf = pg.surfarray.make_surface((pixelsp*255).astype('uint8'))
-            surf = pg.transform.scale(surf, (550, 370))
-            screen.blit(surf, (40, 45))
-            screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("black")),(45,45))
-            screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("white")),(50,50))
-            screen.blit(font2.render(endmsg, 1, pg.Color("salmon")),(50,125))
-            screen.blit(font2.render("Press P to continue", 1, pg.Color("grey")),(50,200))
-            screen.blit(font2.render("Press N for a new game", 1, pg.Color("grey")),(50,275))
-            screen.blit(font2.render("Press ESC to leave", 1, pg.Color("black")),(50,350))
+            clock.tick(30)
+            screen.blit(font2.render(" FinFET's PyTracing Maze  ", 1, pg.Color("black"), (199, 34, 34)),(45,45))
+            screen.blit(font2.render(" FinFET's PyTracing Maze ", 1, pg.Color("white")),(50,50))
+            screen.blit(font2.render(endmsg, 1, pg.Color("salmon"), (100, 34, 60)),(50,320))
+            screen.blit(font2.render(" Press P to continue ", 1, pg.Color("grey"), (80, 34, 80)),(50,390))
+            screen.blit(font2.render(" Press N for a new game ", 1, pg.Color("grey"), (45, 34, 100)),(50,460))
+            screen.blit(font2.render(" Press ESC to leave ", 1, pg.Color("grey"), (13, 34, 139)),(50,530))
+
         
         pg.display.update()
 
