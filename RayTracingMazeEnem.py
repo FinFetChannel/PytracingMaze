@@ -13,14 +13,14 @@ def main():
     maph[int(enx)][int(eny)] = 0
     shoot, sx, sy, sdir = 1, -1, -1, rot
 
-    res, res_o = 0, [96, 112, 160, 192, 224, 260, 300, 340, 400, 480, 540, 600]
+    res, res_o = 0, [96, 112, 160, 192, 224, 260, 300, 340, 400, 480, 540, 600, 800]
     width, height, mod, inc, rr, gg, bb = adjust_resol(24)
 
     running = True
     pg.init()
     
     font = pg.font.SysFont("Arial", 18)
-    font2 = pg.font.SysFont("Impact", 58)
+    font2 = pg.font.SysFont("Impact", 48)
     screen = pg.display.set_mode((800, 600))
     rr, gg, bb = np.linspace(0,0.8, width*height), np.linspace(0.5,.1, width*height), np.linspace(1,0.1, width*height)
     pixelsp = np.dstack((rr,gg,bb))
@@ -147,6 +147,9 @@ def main():
                     pg.mixer.Channel(1).play(failfx)
                     enx, eny, seenx, seeny  = 0, 0, 0, 0
                     pause = 1
+                    surf = pg.surfarray.make_surface((np.rot90(255-pixels*255)).astype('uint8'))
+                    surf = pg.transform.scale(surf, (800, 600))
+                    screen.blit(surf, (0, 0))
 
             ticks = pg.time.get_ticks()/100000
             lx = size/2 + 1000*np.cos(ticks)
@@ -160,9 +163,9 @@ def main():
                 pg.mixer.Channel(1).play(runfx)
         else:
             clock.tick(60)
-            surf = pg.surfarray.make_surface(((pixelsp*255)).astype('uint8'))
-            surf = pg.transform.scale(surf, (800, 600))
-            screen.blit(surf, (0, 0))
+            surf = pg.surfarray.make_surface((pixelsp*255).astype('uint8'))
+            surf = pg.transform.scale(surf, (570, 370))
+            screen.blit(surf, (40, 45))
             screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("black")),(45,45))
             screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("white")),(50,50))
             screen.blit(font2.render(endmsg, 1, pg.Color("salmon")),(50,125))
