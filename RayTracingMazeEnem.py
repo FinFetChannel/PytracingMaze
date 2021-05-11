@@ -140,15 +140,17 @@ def main():
                     pg.mixer.Channel(1).play(killfx)
                     run = True
                 if np.random.uniform() > 0.999:
-                    screen.blit(font2.render(" Enemy Respawning! ", 1, pg.Color("red"), pg.Color("grey")),(300,50))
-                    pg.mixer.Channel(1).play(respawnfx)
-                    pg.display.update()
-                    while 1:
+                    for ee in range(100):
                         enx, eny = np.random.uniform(1, size-2 ), np.random.uniform(1, size-2)
                         dtp = (enx-posx)**2 + (eny-posy)**2
                         if maph[int(enx)][int(eny)] == 0 and dtp > 16 and dtp < 36:
                             break
-                    seenx, seeny = enx-2, eny-2
+                    if maph[int(enx)][int(eny)] != 0:
+                        enx, eny = 0, 0
+                    else:
+                        seenx, seeny = enx-2, eny-2
+                        screen.blit(font2.render(" Enemy Respawning! ", 1, pg.Color("red"), pg.Color("grey")),(300,50))
+                        pg.mixer.Channel(1).play(respawnfx)
             else:
                 if (int(posx) == int(enx) and int(posy) == int(eny)):
                     endmsg = " You died! "
@@ -187,7 +189,7 @@ def main():
     print(endmsg)
     pg.time.wait(2000)
     pg.quit()
-    
+
 def maze_generator(x, y, size):
     
     mr = np.random.uniform(0,1, (size,size)) 
