@@ -146,7 +146,7 @@ def main():
                     while 1:
                         enx, eny = np.random.uniform(1, size-2 ), np.random.uniform(1, size-2)
                         dtp = (enx-posx)**2 + (eny-posy)**2
-                        if maph[int(enx)][int(eny)] == 0 and dtp > 25 and dtp < 49:
+                        if maph[int(enx)][int(eny)] == 0 and dtp > 16 and dtp < 36:
                             break
                     seenx, seeny = enx-2, eny-2
             else:
