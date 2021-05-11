@@ -39,7 +39,7 @@ def main():
     mplayer = np.zeros([size, size])
     enx, eny, mplayer, et, shoot, sx, sy, sdir, seenx, seeny = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny)
     sstart, timer, count, autores = None, 0, -100, 1
-    pause = False
+    pause = 0
     
     pg.mixer.set_num_channels(3)
     ambient = pg.mixer.Sound('soundfx/HauntSilentPartner.mp3')
@@ -51,14 +51,19 @@ def main():
     successfx = pg.mixer.Sound('soundfx/success.mp3')
     failfx = pg.mixer.Sound('soundfx/fail.mp3')
     pg.mixer.Channel(0).play(ambient, -1)
+    pg.mixer.Channel(1).play(respawnfx)
     run = True
     while running:
         count += 1
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-                endmsg = " It's not all fun and games... "
-                pg.mixer.Channel(1).play(failfx)
-                running = False
+                if not pause:
+                    pause = 1
+                    endmsg = " Game paused "
+                else:
+                    endmsg = " Thanks for playing! "
+                    pg.mixer.Channel(1).play(killfx)
+                    running = False
             if event.type == pg.KEYDOWN:
                 if event.key == ord('p'): # pause
                     if not pause:
@@ -72,6 +77,7 @@ def main():
                     enx, eny, seenx, seeny  = 0, 0, 0, 0
                     count = -100
                     width, height, mod, inc, rr, gg, bb = adjust_resol(24)
+                    pg.mixer.Channel(1).play(respawnfx)
                 if event.key == ord('t'): # toggle auto resolution
                     autores = not(autores)
                 if not autores:
@@ -175,7 +181,7 @@ def main():
         
         pg.display.update()
 
-
+    screen.blit(font2.render(endmsg, 1, pg.Color("salmon"), (100, 34, 60)),(50,320))
     pg.mixer.fadeout(2000)
     pg.display.update()
     print(endmsg)
