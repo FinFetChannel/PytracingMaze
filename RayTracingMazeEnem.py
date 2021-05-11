@@ -26,8 +26,8 @@ def main():
     pixelsp = np.dstack((rr,gg,bb))
     pixelsp = np.reshape(pixelsp, (height,width,3))
     surf = pg.surfarray.make_surface((np.rot90(pixelsp*255)).astype('uint8'))
-    surf = pg.transform.scale(surf, (800, 600))
-    screen.blit(surf, (0, 0))
+    surf = pg.transform.scale(surf, (750, 550))
+    screen.blit(surf, (25, 25))
     screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("black")),(45,95))
     screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("white")),(50,100))
     screen.blit(font2.render("Loading, please wait...", 1, pg.Color("black")),(50,300))
@@ -70,6 +70,8 @@ def main():
                     posx, posy, posz = 1.5, np.random.uniform(1, size -1), 0.5
                     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps = maze_generator(int(posx), int(posy), size)
                     enx, eny, seenx, seeny  = 0, 0, 0, 0
+                    count = -100
+                    width, height, mod, inc, rr, gg, bb = adjust_resol(24)
                 if event.key == ord('t'): # toggle auto resolution
                     autores = not(autores)
                 if not autores:
@@ -138,7 +140,7 @@ def main():
                     while 1:
                         enx, eny = np.random.uniform(1, size-2 ), np.random.uniform(1, size-2)
                         dtp = (enx-posx)**2 + (eny-posy)**2
-                        if maph[int(enx)][int(eny)] == 0 and dtp > 16 and dtp < 36:
+                        if maph[int(enx)][int(eny)] == 0 and dtp > 25 and dtp < 49:
                             break
                     seenx, seeny = enx-2, eny-2
             else:
@@ -164,7 +166,7 @@ def main():
         else:
             clock.tick(60)
             surf = pg.surfarray.make_surface((pixelsp*255).astype('uint8'))
-            surf = pg.transform.scale(surf, (570, 370))
+            surf = pg.transform.scale(surf, (550, 370))
             screen.blit(surf, (40, 45))
             screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("black")),(45,45))
             screen.blit(font2.render("FinFET's PyTracing Maze", 1, pg.Color("white")),(50,50))
