@@ -277,8 +277,10 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
             
             modr = 1
             cx, cy, c1r, c2r, c3r = 1, 1, 1, 1, 1
-            mapv, shot, enem = 0, 0, 0
-           
+            shot, enem = 0, 0
+            mapv = maph[int(x)][int(y)]
+            if  mapv == 2 or mapv == 8:
+                mapv = 0
             while 1:
                 if (mapv == 0 or (sinz > 0 and (z > mapv or (mapv==6 and (z>0.4 or z <0.2)) or(z > 0.57 and mapv > 1)))): ## LoDev DDA for optimization
                     
