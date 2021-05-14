@@ -9,7 +9,7 @@ def main():
     rot, rot_v = (np.pi/4, 0)
     lx, ly, lz = (size*20, size*30, 1000)
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps = maze_generator(int(posx), int(posy), size)
-    enx, eny, seenx, seeny  = 0, 0, 0, 0
+    enx, eny, seenx, seeny  = np.random.uniform(2, size-3 ), np.random.uniform(2, size-3), 0, 0
     maph[int(enx)][int(eny)] = 0
     shoot, sx, sy, sdir = 1, -1, -1, rot
 
@@ -59,11 +59,14 @@ def main():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 if not pause:
                     pause = 1
+                    pg.mixer.Channel(1).play(respawnfx)
                     endmsg = " Game paused "
                 else:
                     endmsg = " Thanks for playing! "
                     pg.mixer.Channel(1).play(killfx)
                     running = False
+            if not shoot and (event.type == pg.MOUSEBUTTONDOWN or event.type == pg.MOUSEBUTTONUP):
+                shoot = 1
             if event.type == pg.KEYDOWN:
                 if event.key == ord('p'): # pause
                     if not pause:
@@ -99,9 +102,12 @@ def main():
 
             surf = pg.surfarray.make_surface((np.rot90(pixels*255)).astype('uint8'))
             surf = pg.transform.scale(surf, (800, 600))
-
+            
             screen.blit(surf, (0, 0))
             fpss = int(clock.get_fps())
+            fps = font.render(str(fpss)+' w: '+str(width), 1, pg.Color("coral"))
+            screen.blit(fps,(10,0))
+            
             if autores and count > 10: #auto adjust render resolution
                 if fpss < 40 and width > 100:
                         count = 0
@@ -109,9 +115,6 @@ def main():
                 if fpss > 65 and width < 728:
                         count = 0
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*1.1))
-            fps = font.render(str(fpss)+' w: '+str(width), 1, pg.Color("coral"))
-            screen.blit(fps,(10,0))
-
         
 
             # player's movement
@@ -139,20 +142,23 @@ def main():
                 if not run:
                     pg.mixer.Channel(1).play(killfx)
                     run = True
-                if np.random.uniform() > 0.999:
+                if np.random.uniform() > 0.995:
+                    cos, sin = np.cos(rot), np.sin(rot)
                     for ee in range(100):
-                        enx, eny = np.random.uniform(1, size-2 ), np.random.uniform(1, size-2)
+                        enx = np.clip(np.random.normal(posx, 5), 1, size-2)
+                        eny = np.clip(np.random.normal(posy, 5), 1, size-2)
                         dtp = (enx-posx)**2 + (eny-posy)**2
-                        if maph[int(enx)][int(eny)] == 0 and dtp > 16 and dtp < 36:
+                        if maph[int(enx)][int(eny)] == 0 and dtp > 16 and dtp < 49:
                             break
                     if maph[int(enx)][int(eny)] != 0:
                         enx, eny = 0, 0
                     else:
-                        seenx, seeny = enx-2, eny-2
+                        seenx, seeny = enx, eny
                         screen.blit(font2.render(" Enemy Respawning! ", 1, pg.Color("red"), pg.Color("grey")),(300,50))
                         pg.mixer.Channel(1).play(respawnfx)
             else:
-                if (int(posx) == int(enx) and int(posy) == int(eny)):
+                dtp = (enx-posx)**2 + (eny-posy)**2
+                if dtp < 0.1:
                     endmsg = " You died! "
                     pg.mixer.Channel(1).play(failfx)
                     enx, eny, seenx, seeny  = 0, 0, 0, 0
@@ -160,6 +166,9 @@ def main():
                     surf = pg.surfarray.make_surface((np.rot90(255-pixels*255)).astype('uint8'))
                     surf = pg.transform.scale(surf, (800, 600))
                     screen.blit(surf, (0, 0))
+                elif dtp > 225:
+                    enx, eny, seenx, seeny  = 0, 0, 0, 0
+##                    run = False
 
             ticks = pg.time.get_ticks()/100000
             lx = size/2 + 1000*np.cos(ticks)
@@ -265,21 +274,18 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
     idx = 0
     for j in range(height): #vertical loop 
         rot_j = rot_v + np.deg2rad(24 - j/mod)
-        inv = 1
         sinzo = inc*np.sin(rot_j)
         coszo = inc*np.sqrt(abs(np.cos(rot_j)))        
         for i in range(width): #horizontal vision loop
             rot_i = rot + np.deg2rad(i/mod - 30)
             x, y, z = (posx, posy, posz)
-            sin, cos,  = (inv*coszo*np.sin(rot_i), inv*coszo*np.cos(rot_i))
-            sinz = sinzo
-            
-            
+            sin, cos, sinz = coszo*np.sin(rot_i), coszo*np.cos(rot_i), sinzo
+               
             modr = 1
             cx, cy, c1r, c2r, c3r = 1, 1, 1, 1, 1
             shot, enem = 0, 0
             mapv = maph[int(x)][int(y)]
-            if  mapv == 2 or mapv == 8:
+            if  mapv == 2:# or mapv == 8:
                 mapv = 0
             while 1:
                 if (mapv == 0 or (sinz > 0 and (z > mapv or (mapv==6 and (z>0.4 or z <0.2)) or(z > 0.57 and mapv > 1)))): ## LoDev DDA for optimization
@@ -582,29 +588,37 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, se
         cos, sin = (posx-enx)/dtp, (posy-eny)/dtp
         x, y, r = enx, eny, np.random.uniform(0,1)
 
-        if int(seenx) == int(enx) or int(seeny) == int(eny) or r > 0.95:
-            for i in range(70):
-                x += 0.1*cos; y += 0.1*sin
+        if int(seenx) == int(enx) and int(seeny) == int(eny) or r > 0.99:
+            for i in range(300):
+                x += 0.04*cos; y += 0.04*sin
                 if maph[int(x)][int(y)] != 0:
-                    if r < 0.96:
-                        seenx, seeny = posx+np.random.normal(0,3), posy+np.random.normal(0,3)
+                    if r < 0.995:
+                        seenx, seeny = enx+np.random.normal(0,2), eny+np.random.normal(0,2)
                     break
-                elif(int(x) == int(posx) and int(y) == int(posy)):
+                if(int(x) == int(posx) and int(y) == int(posy)):
                     seenx, seeny = posx, posy
+                    
                     break
             
-        cos, sin = (seenx-enx)/dtp, (seeny-eny)/np.sqrt((enx-seenx)**2 + (eny-seeny)**2)
+        dtp = np.sqrt((enx-seenx)**2 + (eny-seeny)**2)    
+        cos, sin = (seenx-enx)/dtp, (seeny-eny)/dtp    
         x, y = enx + et*(.9*cos+np.random.normal(0,.5)), eny + et*(.9*sin+np.random.normal(0,.5))
 
         if maph[int(x)][int(y)] == 0:
             enx, eny = x, y
-            
+        else:
+            if np.random.uniform(0,1) > 0.5:
+                x, y = enx - et*(.9*sin+np.random.normal(0,.5)), eny + et*(.9*cos+np.random.normal(0,.5))
+            else:
+                x, y = enx + et*(.9*sin+np.random.normal(0,.5)), eny - et*(.9*cos+np.random.normal(0,.5))
+            if maph[int(x)][int(y)] == 0:
+                enx, eny = x, y
         mplayer[int(enx)][int(eny)] = 3
         
     mplayer[int(posx)][int(posy)] = 2    
     if shoot:
         if sx == -1:
-            sx, sy, sdir = posx, posy, rot+np.random.normal(0,.05)
+            sx, sy, sdir = posx + 0.5*np.cos(sdir), posy + 0.5*np.sin(sdir), rot+np.random.normal(0,.05)
         sx, sy = sx + 3*et*np.cos(sdir), sy + 3*et*np.sin(sdir)
         if enx != 0 and (sx - enx)**2 + (sy - eny)**2 < 0.1:
             shoot, sx, sy, enx, eny, seenx, seeny = 0, -1, -1, 0, 0, 0, 0
