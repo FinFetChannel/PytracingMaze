@@ -9,7 +9,7 @@ def main():
     rot, rot_v = (np.pi/4, 0)
     lx, ly, lz = (size*20, size*30, 1000)
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps = maze_generator(int(posx), int(posy), size)
-    enx, eny, seenx, seeny  = np.random.uniform(2, size-3 ), np.random.uniform(2, size-3), 0, 0
+    enx, eny, seenx, seeny, lock  = np.random.uniform(2, size-3 ), np.random.uniform(2, size-3), 0, 0, 0
     maph[int(enx)][int(eny)] = 0
     shoot, sx, sy, sdir = 1, -1, -1, rot
 
@@ -37,8 +37,8 @@ def main():
     pg.mouse.set_visible(False)
     et = 0.1
     mplayer = np.zeros([size, size])
-    enx, eny, mplayer, et, shoot, sx, sy, sdir, seenx, seeny = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny)
-    sstart, timer, count, autores = None, 0, -100, 1
+    enx, eny, mplayer, et, shoot, sx, sy, sdir, seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny, lock)
+    sstart, timer, count, autores, smooth = None, 0, -100, 1, 0
     pause = 0
     
     pg.mixer.set_num_channels(3)
@@ -83,6 +83,8 @@ def main():
                     pg.mixer.Channel(1).play(respawnfx)
                 if event.key == ord('t'): # toggle auto resolution
                     autores = not(autores)
+                if event.key == ord('y'): # toggle auto resolution
+                    smooth = not(smooth)
                 if not autores:
                     if event.key == ord('q'): # manually change resolution
                         if res > 0 :
@@ -94,14 +96,17 @@ def main():
                             width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
             
         if not pause:
-            rr, gg, bb = super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy)
+            rr, gg, bb = super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, size)
             
             pixels = np.dstack((rr,gg,bb))
 
             pixels = np.reshape(pixels, (height,width,3))
 
             surf = pg.surfarray.make_surface((np.rot90(pixels*255)).astype('uint8'))
-            surf = pg.transform.scale(surf, (800, 600))
+            if shoot or smooth:
+                surf = pg.transform.smoothscale(surf, (800, 600))
+            else:
+                surf = pg.transform.scale(surf, (800, 600))
             
             screen.blit(surf, (0, 0))
             fpss = int(clock.get_fps())
@@ -142,7 +147,7 @@ def main():
                 if not run:
                     pg.mixer.Channel(1).play(killfx)
                     run = True
-                if np.random.uniform() > 0.995:
+                if np.random.uniform() > 0.999:
                     cos, sin = np.cos(rot), np.sin(rot)
                     for ee in range(100):
                         enx = np.clip(np.random.normal(posx, 5), 1, size-2)
@@ -153,12 +158,12 @@ def main():
                     if maph[int(enx)][int(eny)] != 0:
                         enx, eny = 0, 0
                     else:
-                        seenx, seeny = enx, eny
+                        seenx, seeny, lock = enx, eny, False
                         screen.blit(font2.render(" Enemy Respawning! ", 1, pg.Color("red"), pg.Color("grey")),(300,50))
                         pg.mixer.Channel(1).play(respawnfx)
             else:
                 dtp = (enx-posx)**2 + (eny-posy)**2
-                if dtp < 0.1:
+                if dtp < 1:
                     endmsg = " You died! "
                     pg.mixer.Channel(1).play(failfx)
                     enx, eny, seenx, seeny  = 0, 0, 0, 0
@@ -167,8 +172,8 @@ def main():
                     surf = pg.transform.scale(surf, (800, 600))
                     screen.blit(surf, (0, 0))
                 elif dtp > 225:
-                    enx, eny, seenx, seeny  = 0, 0, 0, 0
-##                    run = False
+                    enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
+                    run = False
 
             ticks = pg.time.get_ticks()/100000
             lx = size/2 + 1000*np.cos(ticks)
@@ -176,7 +181,7 @@ def main():
             posx, posy, rot, rot_v, shoot = movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot)
             pg.mouse.set_pos([400, 300])
             mplayer = np.zeros([size, size])
-            enx, eny, mplayer, et, shoot, sx, sy, sdir,seenx, seeny = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny)
+            enx, eny, mplayer, et, shoot, sx, sy, sdir,seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny, lock)
             if run and (seenx == posx or seeny == posy):
                 run = False
                 pg.mixer.Channel(1).play(runfx)
@@ -262,7 +267,7 @@ def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot):
     return posx, posy, rot, rot_v, shoot
         
 @njit(fastmath=True)
-def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy):
+def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, size):
         
     texture=[[ .95,  .99,  .97, .8], # brick wall
              [ .97,  .95,  .96, .85],
@@ -284,9 +289,9 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
             modr = 1
             cx, cy, c1r, c2r, c3r = 1, 1, 1, 1, 1
             shot, enem = 0, 0
-            mapv = maph[int(x)][int(y)]
-            if  mapv == 2:# or mapv == 8:
-                mapv = 0
+##            mapv = maph[int(x)][int(y)]
+##            if  mapv == 2:# or mapv == 8:
+            mapv = 0
             while 1:
                 if (mapv == 0 or (sinz > 0 and (z > mapv or (mapv==6 and (z>0.4 or z <0.2)) or(z > 0.57 and mapv > 1)))): ## LoDev DDA for optimization
                     
@@ -316,10 +321,13 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                         if (sideDistX < sideDistY):
                             sideDistX += deltaDistX; mapX += stepX
                             dist = sideDistX; side = 0
+                            if mapX < 1 or mapX > size-2:
+                                break
                         else:
                             sideDistY += deltaDistY; mapY += stepY
                             dist = sideDistY; side = 1
-
+                            if mapY < 1 or mapY > size-2:
+                                break
                         if (maph[mapX][mapY] != 0):
                             break
                             
@@ -581,44 +589,50 @@ def adjust_resol(width):
     return width, height, mod, inc, rr, gg, bb
 
 @njit(fastmath=True)
-def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny):
+def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny, lock):
     
     if enx != 0:
-        dtp = np.sqrt((enx-posx)**2 + (eny-posy)**2)
-        cos, sin = (posx-enx)/dtp, (posy-eny)/dtp
-        x, y, r = enx, eny, np.random.uniform(0,1)
-
-        if int(seenx) == int(enx) and int(seeny) == int(eny) or r > 0.99:
+        if not lock or  np.random.uniform(0,1) > 0.99:
+            dtp = np.sqrt((enx-posx)**2 + (eny-posy)**2)
+            cos, sin = (posx-enx)/dtp, (posy-eny)/dtp
+            x, y = enx, eny
             for i in range(300):
                 x += 0.04*cos; y += 0.04*sin
                 if maph[int(x)][int(y)] != 0:
-                    if r < 0.995:
-                        seenx, seeny = enx+np.random.normal(0,2), eny+np.random.normal(0,2)
+                    lock = 0
                     break
                 if(int(x) == int(posx) and int(y) == int(posy)):
                     seenx, seeny = posx, posy
-                    
+                    lock = 1
                     break
+
+        if int(enx) == int(seenx) and int(eny) == int(seeny):
+            seenx, seeny = np.random.uniform(enx, posx), np.random.uniform(eny, posy)
+            lock = 0
             
         dtp = np.sqrt((enx-seenx)**2 + (eny-seeny)**2)    
         cos, sin = (seenx-enx)/dtp, (seeny-eny)/dtp    
-        x, y = enx + et*(.9*cos+np.random.normal(0,.5)), eny + et*(.9*sin+np.random.normal(0,.5))
+        x, y = enx + et*(cos+np.random.normal(0,.5)), eny + et*(sin+np.random.normal(0,.5))
 
         if maph[int(x)][int(y)] == 0:
             enx, eny = x, y
         else:
             if np.random.uniform(0,1) > 0.5:
-                x, y = enx - et*(.9*sin+np.random.normal(0,.5)), eny + et*(.9*cos+np.random.normal(0,.5))
+                x, y = enx - et*(sin+np.random.normal(0,.5)), eny + et*(cos+np.random.normal(0,.5))
             else:
-                x, y = enx + et*(.9*sin+np.random.normal(0,.5)), eny - et*(.9*cos+np.random.normal(0,.5))
+                x, y = enx + et*(sin+np.random.normal(0,.5)), eny - et*(cos+np.random.normal(0,.5))
             if maph[int(x)][int(y)] == 0:
                 enx, eny = x, y
+            else:
+                seenx, seeny = enx+np.random.normal(0,3), eny+np.random.normal(0,3)
+                lock = 0
+                
         mplayer[int(enx)][int(eny)] = 3
         
     mplayer[int(posx)][int(posy)] = 2    
     if shoot:
         if sx == -1:
-            sx, sy, sdir = posx + 0.5*np.cos(sdir), posy + 0.5*np.sin(sdir), rot+np.random.normal(0,.05)
+            sx, sy, sdir = posx, posy, rot+np.random.normal(0,.05)
         sx, sy = sx + 3*et*np.cos(sdir), sy + 3*et*np.sin(sdir)
         if enx != 0 and (sx - enx)**2 + (sy - eny)**2 < 0.1:
             shoot, sx, sy, enx, eny, seenx, seeny = 0, -1, -1, 0, 0, 0, 0
@@ -629,7 +643,7 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, se
         
     
     mplayer = maph + mplayer
-    return(enx, eny, mplayer, et, shoot, sx, sy, sdir, seenx, seeny)
+    return(enx, eny, mplayer, et, shoot, sx, sy, sdir, seenx, seeny, lock)
 
 if __name__ == '__main__':
     main()
