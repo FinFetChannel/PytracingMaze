@@ -13,7 +13,7 @@ def main():
     maph[int(enx)][int(eny)] = 0
     shoot, sx, sy, sdir = 1, -1, -1, rot
 
-    res, res_o = 0, [96, 112, 160, 192, 224, 260, 300, 340, 400, 480, 540, 600, 800]
+    res, res_o = 5, [96, 112, 160, 192, 224, 260, 300, 340, 400, 480, 540, 600, 800]
     width, height, mod, inc, rr, gg, bb = adjust_resol(24)
 
     running = True
@@ -54,6 +54,7 @@ def main():
     pg.mixer.Channel(0).play(ambient, -1)
     pg.mixer.Channel(1).play(respawnfx)
     run = 1
+    score = 0
     while running:
         count += 1
         for event in pg.event.get():
@@ -63,7 +64,7 @@ def main():
                     pg.mixer.Channel(1).play(respawnfx)
                     endmsg = " Game paused "
                 else:
-                    endmsg = " Thanks for playing! "
+                    endmsg = " Thanks for playing! Total score: " + str(score)
                     pg.mixer.Channel(1).play(killfx)
                     running = False
             if sstart == None and(event.type == pg.MOUSEBUTTONDOWN or event.type == pg.MOUSEBUTTONUP):
@@ -71,16 +72,24 @@ def main():
             if event.type == pg.KEYDOWN:
                 if event.key == ord('p'): # pause
                     if not pause:
+                        pause = 1
                         endmsg = " Game paused "
-                    pause = not(pause)
+                    elif (int(posx) != exitx or int(posy) != exity):
+                        pause = 0
                 if pause and event.key == ord('n'): # new game
-                    pause = not(pause)
-                    size = np.random.randint(20,60) # size of the map
+                    pause = 0
+                    size = np.random.randint(20,60)
                     posx, posy, posz = 1.5, np.random.uniform(1, size -1), 0.5
+                    rot, rot_v = (np.pi/4, 0)
                     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps = maze_generator(int(posx), int(posy), size)
-                    enx, eny, seenx, seeny, run  = 0, 0, 0, 0, 1
+                    enx, eny, seenx, seeny, lock, run  = 0, 0, 0, 0, 0, 1
+                    shoot, sx, sy, sstart = 0, -1, -1, None
+                    mplayer = np.zeros([size, size])
+                    et = 0.1
+                    enx, eny, mplayer, et, shoot, sx, sy, sdir, seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny, lock)
                     count = -100
-                    width, height, mod, inc, rr, gg, bb = adjust_resol(24)
+                    if autores:
+                        width, height, mod, inc, rr, gg, bb = adjust_resol(24)
                     pg.mixer.Channel(1).play(respawnfx)
                 if event.key == ord('t'): # toggle auto resolution
                     autores = not(autores)
@@ -111,14 +120,14 @@ def main():
             
             screen.blit(surf, (0, 0))
             fpss = int(clock.get_fps())
-            fps = font.render(str(fpss)+' w: '+str(width), 1, pg.Color("coral"))
+            fps = font.render(str(fpss)+'  Score: '+str(score), 1, pg.Color("coral"))
             screen.blit(fps,(10,0))
             
             if autores and count > 10: #auto adjust render resolution
                 if fpss < 40 and width > 100:
                         count = 0
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*0.8))
-                if fpss > 65 and width < 728:
+                if fpss > 65 and width < 728 and count > 20:
                         count = 0
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*1.1))        
 
@@ -126,6 +135,7 @@ def main():
             if (int(posx) == exitx and int(posy) == exity):
                 endmsg = " You escaped safely! "
                 pg.mixer.Channel(1).play(successfx)
+                score += 1
                 pause = 1
             
             pressed_keys = pg.key.get_pressed()
@@ -137,7 +147,7 @@ def main():
                 if sstart == None:
                     pg.mixer.Channel(2).play(shotfx)
                     if fpss < 60 and autores:
-                        count = 0
+                        count = -50
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*0.8))
                     sstart = pg.time.get_ticks()
                 elif pg.time.get_ticks() - sstart > 500:
@@ -158,15 +168,16 @@ def main():
                     if maph[int(enx)][int(eny)] != 0:
                         enx, eny = 0, 0
                     else:
-                        seenx, seeny, lock = enx, eny, False
+                        seenx, seeny, lock = enx, eny, 0
                         screen.blit(font2.render(" Enemy Respawning! ", 1, pg.Color("red"), pg.Color("grey")),(300,50))
                         pg.mixer.Channel(1).play(respawnfx)
             else:
                 dtp = (enx-posx)**2 + (eny-posy)**2
                 if dtp < 1:
                     endmsg = " You died! "
+                    score -= 1
                     pg.mixer.Channel(1).play(failfx)
-                    enx, eny, seenx, seeny  = 0, 0, 0, 0
+                    enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
                     pause = 1
                     surf = pg.surfarray.make_surface((np.rot90(255-pixels*255)).astype('uint8'))
                     surf = pg.transform.smoothscale(surf, (800, 600))
@@ -191,7 +202,10 @@ def main():
             screen.blit(font2.render(" FinFET's PyTracing Maze  ", 1, pg.Color("blue")),(55,55))
             screen.blit(font2.render(" FinFET's PyTracing Maze ", 1, pg.Color("white")),(50,50))
             screen.blit(font2.render(endmsg, 1, pg.Color("salmon"), (100, 34, 60)),(50,320))
-            screen.blit(font2.render(" Press P to continue ", 1, pg.Color("grey"), (80, 34, 80)),(50,390))
+            if (int(posx) == exitx and int(posy) == exity):
+                screen.blit(font2.render(" Your current score is "+str(score), 1, pg.Color("grey"), (80, 34, 80)),(50,390))
+            else:
+                screen.blit(font2.render(" Press P to continue ", 1, pg.Color("grey"), (80, 34, 80)),(50,390))
             screen.blit(font2.render(" Press N for a new game ", 1, pg.Color("grey"), (45, 34, 100)),(50,460))
             screen.blit(font2.render(" Press ESC to leave ", 1, pg.Color("grey"), (13, 34, 139)),(50,530))
 
@@ -290,7 +304,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
             modr = 1
             cx, cy, c1r, c2r, c3r = 1, 1, 1, 1, 1
             shot, enem, mapv = 0, 0, 0
-
+            dtp = np.random.uniform(0.002,0.01)
             while 1:
                 if (mapv == 0 or (sinz > 0 and (z > mapv or (mapv==6 and (z>0.4 or z <0.2)) or(z > 0.57 and mapv > 1)))): ## LoDev DDA for optimization
                     
@@ -365,7 +379,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                         if z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
                             break
                     if  mapv > 5 and z < 0.4 and z > 0.2:
-                        if ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2 < 0.01):
+                        if ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2 < dtp):#0.01):
                             shot = 1
                             break
 
@@ -460,7 +474,8 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                         modr = modr*0.9
             else:
                 if shot:
-                    c1, c2, c3 = 1, 0.4 , 0.2 # shot
+                    sh = ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2)/0.012
+                    c1, c2, c3 = 1, 0.6*sh+0.2 , 0.2*sh+0.1 # shot
                 elif z> 0.45:
                     c1, c2, c3 = 0.6, 0.3, 0.3 # Head
                 elif z > 0.3:
@@ -491,7 +506,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     mapv = maph[int(x)][int(y)]
                     if z < mapv and mapv < 1 and not maps[int(x)][int(y)]:
                         modr = modr*0.39
-                    while modr > 0.4:
+                    while modr > 0.45:
                         if (mapv == 0) or not shot and ((z > mapv) or (z > 0.57 and mapv > 1)): ## LoDev DDA for optimization
                         
                             norm = np.sqrt(cos**2 + sin**2 + sinz**2)
@@ -520,10 +535,13 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                                 if (sideDistX < sideDistY):
                                     sideDistX += deltaDistX; mapX += stepX
                                     dist = sideDistX; side = 0
+                                    if mapX < 1 or mapX > size-2:
+                                        break
                                 else:
                                     sideDistY += deltaDistY; mapY += stepY
                                     dist = sideDistY; side = 1
-
+                                    if mapY < 1 or mapY > size-2:
+                                        break
                                 if (maph[mapX][mapY] != 0):
                                     break
                                     
@@ -550,23 +568,23 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                         if z < 0.57 and mapv > 1:
                             if  mapv == 3 or mapv == 9:
                                 if z> 0.45 and (x-enx)**2 + (y-eny)**2 + (z-0.5)**2 < 0.005 :
-                                    modr = modr*0.63
+                                    modr = modr*0.67
                                 elif z < 0.45 and z > 0.3 and (x-enx)**2 + (y-eny)**2  < (z/10 - 0.02):
-                                    modr = modr*0.63
+                                    modr = modr*0.67
                                 elif z < 0.3 and (x-enx)**2 + (y-eny)**2 + (z-0.15)**2 < 0.023 :
-                                    modr = modr*0.63
+                                    modr = modr*0.67
                             elif mapv == 2 or mapv == 8:
                                 if z> 0.45 and (x-posx)**2 + (y-posy)**2 + (z-0.5)**2 < 0.005 :
-                                    modr = modr*0.63
+                                    modr = modr*0.67
                                 elif z < 0.45 and z > 0.3 and (x-posx)**2 + (y-posy)**2  < (z/10 - 0.02):
-                                    modr = modr*0.63
+                                    modr = modr*0.67
                                 elif z < 0.3 and (x-posx)**2 + (y-posy)**2 + (z-0.15)**2 < 0.023 :
-                                    modr = modr*0.63
+                                    modr = modr*0.67
                                     
                         if mapv > 0 and z <= mapv and mapv < 2:      
                             if maps[int(x)][int(y)]: # check spheres
                                 if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
-                                    modr = modr*0.63
+                                    modr = modr*0.9
                             else:    
                                 modr = modr*0.9                    
                     
@@ -636,9 +654,10 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, se
     mplayer[int(posx)][int(posy)] = 2    
     if shoot:
         if sx == -1:
-            sx, sy, sdir = posx, posy, rot+np.random.normal(0,.05)
+            sdir = rot+np.random.uniform(-.1,.1)
+            sx, sy = posx + .5*np.cos(sdir), posy + .5*np.sin(sdir)
         sx, sy = sx + 5*et*np.cos(sdir), sy + 5*et*np.sin(sdir)
-        if enx != 0 and (sx - enx)**2 + (sy - eny)**2 < 0.1:
+        if enx != 0 and (sx - enx)**2 + (sy - eny)**2 < 0.02:
             shoot, sx, sy, enx, eny, seenx, seeny = 0, -1, -1, 0, 0, 0, 0
         if maph[int(sx)][int(sy)] != 0:
             shoot, sx, sy = 0, -1, -1
