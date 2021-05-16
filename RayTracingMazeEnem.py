@@ -127,7 +127,7 @@ def main():
                 if fpss < 40 and width > 100:
                         count = 0
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*0.8))
-                if fpss > 65 and width < 728 and count > 20:
+                if fpss > 65 and width < 728:
                         count = 0
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*1.1))        
 
