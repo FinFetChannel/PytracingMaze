@@ -171,7 +171,7 @@ def main():
                     surf = pg.surfarray.make_surface((np.rot90(255-pixels*255)).astype('uint8'))
                     surf = pg.transform.smoothscale(surf, (800, 600))
                     screen.blit(surf, (0, 0))
-                elif dtp > 256:
+                elif dtp > 300:
                     enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
                     run = 0
 
@@ -477,7 +477,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
             if not shot and z < 1:
                 dtp = np.sqrt((x-posx)**2+(y-posy)**2+(z-posz)**2)
                 if dtp > 7:
-                    modr = modr/((dtp-6)/4+1)
+                    modr = modr/np.log((dtp-6)/4+np.e)
 
                 if z < 1: # shadows
                     if sx != -1 and maph[int(sx)][int(sy)] > 1:
