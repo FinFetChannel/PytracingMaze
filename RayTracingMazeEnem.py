@@ -62,7 +62,7 @@ def main():
                 if not pause:
                     pause = 1
                     pg.mixer.Channel(1).play(respawnfx)
-                    endmsg = " Game paused "
+                    endmsg = " Game paused. Current score: " + str(score)
                 else:
                     endmsg = " Thanks for playing! Total score: " + str(score)
                     pg.mixer.Channel(1).play(killfx)
@@ -73,7 +73,7 @@ def main():
                 if event.key == ord('p'): # pause
                     if not pause:
                         pause = 1
-                        endmsg = " Game paused "
+                        endmsg = " Game paused. Current score: " + str(score)
                     elif (int(posx) != exitx or int(posy) != exity):
                         pause = 0
                 if pause and event.key == ord('n'): # new game
@@ -174,8 +174,8 @@ def main():
             else:
                 dtp = (enx-posx)**2 + (eny-posy)**2
                 if dtp < 1:
-                    endmsg = " You died! "
                     score -= 1
+                    endmsg = " You died! Current score: " + str(score)
                     pg.mixer.Channel(1).play(failfx)
                     enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
                     pause = 1
