@@ -55,6 +55,7 @@ def main():
     pg.mixer.Channel(1).play(respawnfx)
     run = 1
     score = 0
+    ticks = pg.time.get_ticks()/100000
     while running:
         count += 1
         for event in pg.event.get():
@@ -119,12 +120,13 @@ def main():
                 surf = pg.transform.scale(surf, (800, 600))
             
             screen.blit(surf, (0, 0))
-            fpss = int(clock.get_fps())
-            fps = font.render(str(fpss)+'  Score: '+str(score), 1, pg.Color("coral"))
+##            fpss = int(clock.get_fps())pg.time.get_ticks()/100000
+            fpss = int(1000/(pg.time.get_ticks() - ticks*100000))
+            fps = font.render(str(fpss)+' w: '+ str(width) + '  Score: '+str(score), 1, pg.Color("coral"))
             screen.blit(fps,(10,0))
             
             if autores and count > 10: #auto adjust render resolution
-                if fpss < 40 and width > 100:
+                if fpss < 50 and width > 100:
                         count = 0
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*0.8))
                 if fpss > 65 and width < 728:
