@@ -614,9 +614,9 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                         pg[idx] = (pg[idx-width] + pg[idx+width])/2
                         pb[idx] = (pb[idx-width] + pb[idx+width])/2
                     else:
-                        pr[idx] = ((1-garbage)*pr[idx] + pr[idx-1] + pr[idx-width] + pr[idx-width-1] + pr[idx-width+1])/(5-garbage)
-                        pg[idx] = ((1-garbage)*pg[idx] + pg[idx-1] + pg[idx-width] + pg[idx-width-1] + pg[idx-width+1])/(5-garbage)
-                        pb[idx] = ((1-garbage)*pb[idx] + pb[idx-1] + pb[idx-width] + pb[idx-width-1] + pb[idx-width+1])/(5-garbage)
+                        pr[idx] = ((1-garbage)*pr[idx] + pr[idx-1] + pr[idx-width] + pr[idx+width] + pr[idx+1])/(5-garbage)
+                        pg[idx] = ((1-garbage)*pg[idx] + pg[idx-1] + pg[idx-width] + pg[idx+width] + pg[idx+1])/(5-garbage)
+                        pb[idx] = ((1-garbage)*pb[idx] + pb[idx-1] + pb[idx-width] + pb[idx+width] + pb[idx+1])/(5-garbage)
                 idx += 1
     return pr, pg, pb
 
