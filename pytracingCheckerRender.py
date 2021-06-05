@@ -24,7 +24,7 @@ def main():
     screen = pg.display.set_mode((800, 600))
     rr, gg, bb = np.linspace(0,0.8, width*height), np.linspace(0.5,.1, width*height), np.linspace(1,0.1, width*height)
     pixels = np.dstack((rr,gg,bb))
-    pixels = np.reshape(pixels, (height,width,3))
+    pixels = np.reshape(pixels, (height,width,3))/np.max(pixels)
     surf = pg.surfarray.make_surface((np.rot90(pixels*255)).astype('uint8'))
     surf = pg.transform.scale(surf, (750, 550))
     screen.blit(surf, (25, 25))
@@ -39,7 +39,7 @@ def main():
     et = 0.1
     mplayer = np.zeros([size, size])
     enx, eny, mplayer, et, shoot, sx, sy, sdir, seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, mplayer, seenx, seeny, lock)
-    sstart, timer, count, autores, smooth, checker, inverse, garbage = None, 0, -100, 1, 0, 1, 1, 1
+    sstart, timer, count, autores, smooth, checker = None, 0, -100, 1, 0, 1
     pause = 0
     
     pg.mixer.set_num_channels(3)
@@ -57,7 +57,6 @@ def main():
     score = 0
     ticks = pg.time.get_ticks()/100000
     while running:
-        count += 1
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 if not pause:
@@ -101,17 +100,16 @@ def main():
                 if not autores:
                     if event.key == ord('q'): # manually change resolution
                         if res > 0 :
-                            res = res-1
+                            res, count = res-1, 0
                             width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
                     if event.key == ord('e'):
                         if res < len(res_o)-1 :
-                            res = res+1
+                            res, count = res+1, 0
                             width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
             
         if not pause:
-            inverse = not inverse
-            rr, gg, bb = super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, size, checker, inverse, garbage)
-            garbage = 0    
+            rr, gg, bb = super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, size, checker, count)
+            count += 1
             pixels = np.dstack((rr,gg,bb))
 
             pixels = np.reshape(pixels, (height,width,3))
@@ -152,7 +150,7 @@ def main():
                 if sstart == None:
                     pg.mixer.Channel(2).play(shotfx)
                     if fpss < 60 and autores:
-                        count, garbage = -50, 1
+                        count, garbage = 0, 1
                         width, height, mod, inc, rr, gg, bb = adjust_resol(int(width*0.8))
                     sstart = pg.time.get_ticks()
                 elif pg.time.get_ticks() - sstart > 500:
@@ -179,7 +177,8 @@ def main():
             else:
                 dtp = (enx-posx)**2 + (eny-posy)**2
                 if dtp < 1:
-                    score -= 1
+                    if score > 0:
+                        score -= 1
                     endmsg = " You died! Current score: " + str(score)
                     pg.mixer.Channel(1).play(failfx)
                     enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
@@ -221,7 +220,7 @@ def main():
     pg.mixer.fadeout(1000)
     pg.display.update()
     print(endmsg)
-    pg.time.wait(2000)
+    pg.time.wait(1000)
     pg.quit()
 
 def maze_generator(x, y, size):
@@ -287,7 +286,7 @@ def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot, sstart):
     return posx, posy, rot, rot_v, shoot
         
 @njit(fastmath=True)
-def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, size, checker, inverse, garbage):
+def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, size, checker, count):
         
     texture=[[ .95,  .99,  .97, .8], # brick wall
              [ .97,  .95,  .96, .85],
@@ -296,14 +295,17 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
              [ .99, .8,  .97,  .95],
              [.8, .85, .8, .8]]
 
+    inverse = count%2
+    rot, rot_v = rot + inc*(1-inverse)/4, rot_v + inc*(1-inverse)/4
+    garbage = not(count)
     idx = 0
     for j in range(height): #vertical loop 
-        rot_j = rot_v + np.deg2rad(24 - j/mod)+ 0.005*(1-inverse)/mod#np.random.uniform(-0.005, 0.005)/mod
+        rot_j = rot_v + np.deg2rad(24 - j/mod)
         sinzo = inc*np.sin(rot_j) 
         coszo = inc*np.sqrt(abs(np.cos(rot_j)))        
         for i in range(width): #horizontal vision loop
             if (not(checker) or i == 0 or i == width -1 or j == 0 or j == height -1 or (inverse and i%2 == j%2) or (not(inverse) and i%2 != j%2)):
-                rot_i = rot + np.deg2rad(i/mod - 30) + 0.005*(1-inverse)/mod#np.random.uniform(-0.005, 0.005)/mod
+                rot_i = rot + np.deg2rad(i/mod - 30)
                 x, y, z = (posx, posy, posz)
                 sin, cos, sinz = coszo*np.sin(rot_i), coszo*np.cos(rot_i), sinzo
                    
@@ -594,50 +596,28 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                                 else:    
                                     modr = modr*0.9                    
                     
-                pr[idx] = (2*modr*np.sqrt(c1*c1r) + (1-garbage)*pr[idx])/(3-garbage)
-                pg[idx] = (2*modr*np.sqrt(c2*c2r) + (1-garbage)*pg[idx])/(3-garbage)
-                pb[idx] = (2*modr*np.sqrt(c3*c3r) + (1-garbage)*pb[idx])/(3-garbage)
+                pr[idx] = (3*modr*np.sqrt(c1*c1r) + (1-garbage)*pr[idx])/(4-garbage)
+                pg[idx] = (3*modr*np.sqrt(c2*c2r) + (1-garbage)*pg[idx])/(4-garbage)
+                pb[idx] = (3*modr*np.sqrt(c3*c3r) + (1-garbage)*pb[idx])/(4-garbage)
             idx += 1
-    idx = 0
-##    for j in range(height): #vertical loop        
-##        for i in range(width): #horizontal vision loop
-##            if (i > 0 and i < width -1 and j > 0 and j < height -1):
-##                if not(garbage) or ((inverse and i%2 != j%2) or (not(inverse) and i%2 == j%2)):
-##                    pr[idx] = ((1-garbage)*pr[idx] + (pr[idx-1] + pr[idx+1] + pr[idx-width] + pr[idx+width])/2)/(3-garbage)
-##                    pg[idx] = ((1-garbage)*pg[idx] + (pg[idx-1] + pg[idx+1] + pg[idx-width] + pg[idx+width])/2)/(3-garbage)
-##                    pb[idx] = ((1-garbage)*pb[idx] + (pb[idx-1] + pb[idx+1] + pb[idx-width] + pb[idx+width])/2)/(3-garbage)
-##            idx += 1
-    if checker:
+    if checker: # fill gaps
         idx = 0
         for j in range(height): #vertical loop        
             for i in range(width): #horizontal vision loop
-                if (((inverse and i%2 != j%2) or (not(inverse) and i%2 == j%2)) and i > 0 and i < width -1 and j > 0 and j < height -1):
-                    pr[idx] = ((1-garbage)*pr[idx] + (pr[idx-1] + pr[idx+1] + pr[idx-width] + pr[idx+width])/2)/(3-garbage)
-                    pg[idx] = ((1-garbage)*pg[idx] + (pg[idx-1] + pg[idx+1] + pg[idx-width] + pg[idx+width])/2)/(3-garbage)
-                    pb[idx] = ((1-garbage)*pb[idx] + (pb[idx-1] + pb[idx+1] + pb[idx-width] + pb[idx+width])/2)/(3-garbage)
+                if (i > 0 and i < width -1 and j > 0 and j < height -1 and ((inverse and i%2 != j%2) or (not(inverse) and i%2 == j%2))):
+                    if abs(pr[idx-1] - pr[idx+1]) < 0.2 and abs(pg[idx-1] - pg[idx+1]) < 0.2 and abs(pb[idx-1] - pb[idx+1]) < 0.2 :
+                        pr[idx] = (pr[idx-1] + pr[idx+1])/2
+                        pg[idx] = (pg[idx-1] + pg[idx+1])/2
+                        pb[idx] = (pb[idx-1] + pb[idx+1])/2
+                    elif abs(pr[idx-width] - pr[idx+width]) < 0.2 and abs(pg[idx-width] - pg[idx+width]) < 0.2 and abs(pb[idx-width] - pb[idx+width]) < 0.2 :
+                        pr[idx] = (pr[idx-width] + pr[idx+width])/2
+                        pg[idx] = (pg[idx-width] + pg[idx+width])/2
+                        pb[idx] = (pb[idx-width] + pb[idx+width])/2
+                    else:
+                        pr[idx] = ((1-garbage)*pr[idx] + pr[idx-1] + pr[idx-width] + pr[idx-width-1] + pr[idx-width+1])/(5-garbage)
+                        pg[idx] = ((1-garbage)*pg[idx] + pg[idx-1] + pg[idx-width] + pg[idx-width-1] + pg[idx-width+1])/(5-garbage)
+                        pb[idx] = ((1-garbage)*pb[idx] + pb[idx-1] + pb[idx-width] + pb[idx-width-1] + pb[idx-width+1])/(5-garbage)
                 idx += 1
-##    if checker and garbage:
-##        idx = 0
-##        for j in range(height): #vertical loop        
-##            for i in range(width): #horizontal vision loop
-##                if (((inverse and i%2 != j%2) or (not(inverse) and i%2 == j%2)) and i > 0 and i < width -1 and j > 0 and j < height -1):
-##                    pr[idx] = (pr[idx-1] + pr[idx+1] + pr[idx-width] + pr[idx+width])/4
-##                    pg[idx] = (pg[idx-1] + pg[idx+1] + pg[idx-width] + pg[idx+width])/4
-##                    pb[idx] = (pb[idx-1] + pb[idx+1] + pb[idx-width] + pb[idx+width])/4
-##                idx += 1
-    return pr, pg, pb
-
-@njit(fastmath=True)
-def fill_check(pr, pg, pb, height, width):
-    idx = 0
-    for j in range(height): #vertical loop        
-        for i in range(width): #horizontal vision loop
-            
-            if (i%2 != j%2 and i > 0 and i < width -2 and j > 0 and j < height -2):
-                pr[idx] = (pr[idx-1] + pr[idx+1] + pr[idx-width] + pr[idx+width])/4
-                pg[idx] = (pg[idx-1] + pg[idx+1] + pg[idx-width] + pg[idx+width])/4
-                pb[idx] = (pb[idx-1] + pb[idx+1] + pb[idx-width] + pb[idx+width])/4
-            idx += 1
     return pr, pg, pb
 
 def adjust_resol(width):
