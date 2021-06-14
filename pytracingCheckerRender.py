@@ -40,10 +40,11 @@ def main():
     et = 0.1
     mplayer = np.zeros([size, size])
     enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir,
-                                                                                                     shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock)
+                                                                                                     shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock, size)
     sstart, sstart2, timer, count, autores, smooth, checker = None, None, 0, -100, 1, 0, 1
     pause = 0
-    
+
+    surfbg = pg.Surface((800,600))
     pg.mixer.set_num_channels(4)
     ambient = pg.mixer.Sound('soundfx/HauntSilentPartner.mp3')
     ambient.set_volume(0.5)
@@ -56,7 +57,7 @@ def main():
     pg.mixer.Channel(0).play(ambient, -1)
     pg.mixer.Channel(1).play(respawnfx)
     run = 1
-    score = 0
+    score, health = 0, 10
     ticks = pg.time.get_ticks()/100000
     while running:
         for event in pg.event.get():
@@ -88,8 +89,10 @@ def main():
                     shoot, sx, sy, sstart = 0, -1, -1, None
                     mplayer = np.zeros([size, size])
                     et = 0.1
-                    enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock)
-                    count = -100
+                    enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot,
+                                                                                                                     sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer,
+                                                                                                                     seenx, seeny, lock, size)
+                    count, health = -100, 10
                     if autores:
                         width, height, mod, inc, rr, gg, bb = adjust_resol(24)
                     pg.mixer.Channel(1).play(respawnfx)
@@ -110,6 +113,7 @@ def main():
                             width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
             
         if not pause:
+            surfbg.fill(pg.Color("black"))
             rr, gg, bb = super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
                                     mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2, size, checker, count)
             count += 1
@@ -119,16 +123,18 @@ def main():
 
             surf = pg.surfarray.make_surface((np.rot90(pixels*255)).astype('uint8'))
             if shoot or smooth:
-                surf = pg.transform.smoothscale(surf, (800, 600))
+                surf = pg.transform.smoothscale(surf, (800, 550))
             else:
-                surf = pg.transform.scale(surf, (800, 600))
-            
-            screen.blit(surf, (0, 0))
-##            fpss = int(clock.get_fps())pg.time.get_ticks()/100000
+                surf = pg.transform.scale(surf, (800, 550))
+            pg.draw.rect(surfbg, pg.Color("forestgreen"),(0,579,800,19))
+            if health < 10:
+                pg.draw.rect(surfbg, pg.Color("firebrick"),(400-40*(10-health),581,80*(10-health),15))
+            screen.blit(surfbg, (0, 0))
+            screen.blit(surf, (0, 25))
+            fps = font.render('Pytracing Maze - Find the exit!    Score: ' +str(score)+' Res: '+ str(width) +'x' + str(height) +'  FPS: '+ str(int(clock.get_fps())), 1, pg.Color("coral"))
+            screen.blit(fps,(100,1))
             fpss = int(1000/(pg.time.get_ticks() - ticks*100000))
-            fps = font.render(str(fpss)+' w: '+ str(width) + '  Score: '+str(score), 1, pg.Color("coral"))
-            screen.blit(fps,(10,0))
-            
+
             if autores and count > 10: #auto adjust render resolution
                 if fpss < 50 and width > 100:
                         count, garbage = 0, 1
@@ -170,48 +176,27 @@ def main():
                     shoot2, sx2, sy2, sstart2 = 0, -1, -1, None
                     
                 if (sx2 - posx)**2 + (sy2 - posy)**2 < 0.01:
-                    if score > 0:
-                        score -= 1
-                    endmsg = " You died! Current score: " + str(score)
-                    pg.mixer.Channel(1).play(failfx)
-                    enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
-                    shoot2, sx2, sy2, sstart2 = 0, -1, -1, None
-                    pause = 1
-                    surf = pg.surfarray.make_surface((np.rot90(255-pixels*255)).astype('uint8'))
-                    surf = pg.transform.smoothscale(surf, (800, 600))
-                    screen.blit(surf, (0, 0))
+                    health -= int(1 + score/2)
+                    if health == 0:
+                        if score > 0:
+                            score -= 1
+                        endmsg = " You died! Current score: " + str(score)
+                        pg.mixer.Channel(1).play(failfx)
+                        enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
+                        shoot2, sx2, sy2, sstart2 = 0, -1, -1, None
+                        pause = 1
+                        surf = pg.surfarray.make_surface((np.rot90(255-pixels*255)).astype('uint8'))
+                        surf = pg.transform.smoothscale(surf, (800, 550))
+                        screen.blit(surf, (25, 0))
                     
                     
             if enx == 0:
                 if not run:
                     pg.mixer.Channel(1).play(killfx)
+                    health += 2
                     run = 1
-                if np.random.uniform() > 0.999:
-                    cos, sin = np.cos(rot), np.sin(rot)
-                    for ee in range(100):
-                        enx = np.clip(np.random.normal(posx, 5), 1, size-2)
-                        eny = np.clip(np.random.normal(posy, 5), 1, size-2)
-                        dtp = (enx-posx)**2 + (eny-posy)**2
-                        if maph[int(enx)][int(eny)] == 0 and dtp > 16 and dtp < 49:
-                            break
-                    if maph[int(enx)][int(eny)] != 0:
-                        enx, eny = 0, 0
-                    else:
-                        seenx, seeny, lock = enx, eny, 0
-                        screen.blit(font2.render(" Enemy Respawning! ", 1, pg.Color("red"), pg.Color("grey")),(300,50))
-                        pg.mixer.Channel(1).play(respawnfx)
             else:                  
                 dtp = (enx-posx)**2 + (eny-posy)**2
-##                if dtp < 1:
-##                    if score > 0:
-##                        score -= 1
-##                    endmsg = " You died! Current score: " + str(score)
-##                    pg.mixer.Channel(1).play(failfx)
-##                    enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
-##                    pause = 1
-##                    surf = pg.surfarray.make_surface((np.rot90(255-pixels*255)).astype('uint8'))
-##                    surf = pg.transform.smoothscale(surf, (800, 600))
-##                    screen.blit(surf, (0, 0))
                 if (enx-posx)**2 + (eny-posy)**2 > 300:
                     enx, eny, seenx, seeny, lock  = 0, 0, 0, 0, 0
                     run = 0
@@ -222,7 +207,9 @@ def main():
             posx, posy, rot, rot_v, shoot = movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot, sstart)
             pg.mouse.set_pos([400, 300])
             mplayer = np.zeros([size, size])
-            enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2,seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock)
+            enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2,seenx, seeny, lock = agents(enx, eny, maph, posx, posy, rot, et, shoot,
+                                                                                                            sx, sy, sdir, shoot2, sx2, sy2, sdir2,
+                                                                                                            mplayer, seenx, seeny, lock, size)
             if run and (seenx == posx or seeny == posy):
                 run = False
                 pg.mixer.Channel(1).play(runfx)
@@ -516,10 +503,10 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
                     if shot:
                         if mapv < 12:
                             sh = ((x-sx2)**2 + (y-sy2)**2 + (z-0.3)**2)/0.012
-                            c1, c2, c3 = 0, 0.6*sh+0.2 , 0.2*sh+0.1 # shot
+                            c1, c2, c3 = 0.8, 0.5*sh+0.2 , 0.1*sh+0.1 # shot enemy
                         else:
                             sh = ((x-sx)**2 + (y-sy)**2 + (z-0.3)**2)/0.012
-                            c1, c2, c3 = 1, 0.6*sh+0.2 , 0.2*sh+0.1 # sho
+                            c1, c2, c3 = 1, 0.6*sh+0.2 , 0.2*sh+0.1 # shot
                     elif z> 0.45:
                         c1, c2, c3 = 0.6, 0.3, 0.3 # Head
                     elif z > 0.3:
@@ -657,7 +644,7 @@ def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb
     return pr, pg, pb
 
 def adjust_resol(width):
-    height = int(0.75*width)
+    height = int(0.6875*width)
     mod = width/64
     inc = 0.02/mod
     rr = np.random.uniform(0,1,width * height)
@@ -667,9 +654,22 @@ def adjust_resol(width):
     return width, height, mod, inc, rr, gg, bb
 
 @njit(fastmath=True)
-def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock):
+def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock, size):
     
-    if enx != 0:
+    if enx == 0:
+        if np.random.uniform(0,1) > 0.999:
+            cos, sin = np.cos(rot), np.sin(rot)
+            for i in range(10):
+                enx = np.random.normal(posx, 5)
+                eny = np.random.normal(posy, 5)
+                if enx > 0 and enx < size-1 and eny > 0 and eny < size-1:
+                    dtp = (enx-posx)**2 + (eny-posy)**2
+                    if maph[int(enx)][int(eny)] == 0 and dtp > 16 and dtp < 49:
+                        seenx, seeny, lock = enx, eny, 0
+                        break
+                else:
+                    enx, eny = 0, 0
+    else:
         if not lock or  np.random.uniform(0,1) > 0.99:
             dtp = np.sqrt((enx-posx)**2 + (eny-posy)**2)
             cos, sin = (posx-enx)/dtp, (posy-eny)/dtp
@@ -711,6 +711,7 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
                 lock = 0
                 
         mplayer[int(enx)][int(eny)] = 3
+
         
     mplayer[int(posx)][int(posy)] = 2
     if lock and not shoot2:
