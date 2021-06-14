@@ -34,7 +34,7 @@ def main():
     screen.blit(font2.render(" FinFET's PyTracing Maze ", 1, pg.Color("white")),(50,100))
     screen.blit(font2.render(" Loading, please wait... ", 1, pg.Color("black"), pg.Color("grey")),(50,300))
     pg.display.update()
-    
+    pg.time.wait(200)
     clock = pg.time.Clock()
     pg.mouse.set_visible(False)
     et = 0.1
@@ -116,6 +116,7 @@ def main():
             surfbg.fill(pg.Color("deepskyblue3"))
             rr, gg, bb = super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
                                     mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2, size, checker, count)
+
             count += 1
             pixels = np.dstack((rr,gg,bb))
 
@@ -304,7 +305,7 @@ def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot, sstart):
                                                 
     return posx, posy, rot, rot_v, shoot
         
-@njit(fastmath=True)
+@njit(fastmath=True, cache=True)
 def super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
                maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2, size, checker, count):
         
@@ -659,7 +660,7 @@ def adjust_resol(width):
 ##    print('Resolution: ', width, height)
     return width, height, mod, inc, rr, gg, bb
 
-@njit(fastmath=True)
+@njit(fastmath=True, cache=True)
 def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock, size):
     
     if enx == 0:
