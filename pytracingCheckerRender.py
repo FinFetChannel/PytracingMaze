@@ -113,7 +113,7 @@ def main():
                             width, height, mod, inc, rr, gg, bb = adjust_resol(res_o[res])
             
         if not pause:
-            surfbg.fill(pg.Color("black"))
+            surfbg.fill(pg.Color("deepskyblue3"))
             rr, gg, bb = super_fast(width, height, mod, inc, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
                                     mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2, size, checker, count)
             count += 1
@@ -131,7 +131,9 @@ def main():
                 pg.draw.rect(surfbg, pg.Color("firebrick"),(400-40*(10-health),581,80*(10-health),15))
             screen.blit(surfbg, (0, 0))
             screen.blit(surf, (0, 25))
-            fps = font.render('Pytracing Maze - Find the exit!    Score: ' +str(score)+' Res: '+ str(width) +'x' + str(height) +'  FPS: '+ str(int(clock.get_fps())), 1, pg.Color("coral"))
+            fps = font.render('Pytracing Maze - Find the exit!    Score: ' +
+                              str(score)+' Res: '+ str(width) +'x' + str(height) +
+                              '  FPS: '+ str(int(clock.get_fps())), 1, pg.Color("coral"))
             screen.blit(fps,(100,1))
             fpss = int(1000/(pg.time.get_ticks() - ticks*100000))
 
@@ -292,7 +294,11 @@ def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot, sstart):
         
     if maph[int(x)][int(y)] == 0:
         posx, posy = (x, y)
-
+    elif maph[int(posx)][int(y)] == 0:
+        posy = y
+    elif maph[int(x)][int(posy)] == 0:
+        posx = x
+        
     if not shoot and sstart == None and pressed_keys[pg.K_SPACE]:
         shoot = 1
                                                 
