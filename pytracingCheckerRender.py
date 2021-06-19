@@ -24,6 +24,7 @@ def main():
     pg.mixer.Channel(0).play(ambient, -1)
     endmsg = " Numba may need more compiling... "
     pg.mixer.Channel(1).play(respawnfx)
+    ticks = pg.time.get_ticks()/100000
     lx, ly, lz = size/2 + 1500*np.cos(ticks), size/2 + 1000*np.sin(ticks), 1000
     enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sstart, et, count, health, sdir, sdir2, shoot2, sx2, sy2, sstart2, won, et, run, respawn = \
     new_game(width, height, mod, move, posx, posy, .99, rot, rot_v, mr, mg, mb, lx, ly, lz, maph, exitx, exity, mapr, mapt, maps,
