@@ -1,6 +1,6 @@
 # PytracingMaze
 
-MOST RECENT VERSION: pytracing render choices.py
+MOST RECENT VERSION: [pytracing render choices.py](https://github.com/FinFetChannel/PytracingMaze/blob/main/pytracing%20render%20choices.py)
 
 Simple ray tracing game in Python, based on my [ray casting project](https://github.com/FinFetChannel/RayCastingPythonMaze). As you may have guessed, things started to get a bit heavy for Python, so i had to resort to the Numba library, improving performance by 100x.
 
