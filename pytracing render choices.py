@@ -4,12 +4,12 @@ from numba import njit
 
 def main():
 
-    running, pause, fps_lock, score, maxscore = 1, 1, 60, 0, 0
-    timer, autores, checker , move, count, enhealth = 0, 1, 0, 0, 0, 0
+    running, pause, fps_lock, score, maxscore, fullscreen = 1, 1, 60, 0, 0, 0
+    timer, autores, checker , move, count, enhealth = 0, 1, 2, 0, 0, 0
     
     endmsg = ' Numba compiling, please wait... '
     rr, gg, bb = np.linspace(0,0.8, 25*14), np.linspace(0.5,.1, 25*14), np.linspace(1,0.1, 25*14)
-    drawing(rr, gg, bb, 14, 25, 1, endmsg, 0, 10, 10, np.zeros([3,3]), score, False)
+    drawing(rr, gg, bb, 14, 25, 1, endmsg, 0, 10, 10, np.zeros([3,3]), score, fullscreen, False)
     pg.time.wait(200)
     
     clock = pg.time.Clock()
@@ -20,13 +20,13 @@ def main():
     endmsg = " Numba may need more compiling..."
     pg.mixer.Channel(1).play(respawnfx)
     
-    (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, mplayer, minimap,
+    (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
      width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sstart, et, count,
      health, sdir, sdir2, shoot2, sx2, sy2, sstart2, won, et, run, respawn) = new_game(fb, fg, fr, endmsg, score)    
 
     while running:
         if np.random.uniform() > 0.99:
-            pg.display.set_caption(endmsg + ' P - Pause, F - Fulscreen, Q/W - FPS lock/Res, R - Render type, T - AutoRes ')
+            pg.display.set_caption(endmsg + ' P or C - Pause, F - Fulscreen, Q/W - FPS lock/Res, R - Render type, T - AutoRes ')
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 if not pause:
@@ -40,7 +40,7 @@ def main():
             if sstart == None and(event.type == pg.MOUSEBUTTONDOWN or event.type == pg.MOUSEBUTTONUP):
                 shoot = 1
             if event.type == pg.KEYDOWN:
-                if event.key == ord('p'): # pause
+                if event.key == ord('p') or event.key == ord('c'): # pause
                     if not pause:
                         pause = 1
                         pg.mixer.Channel(1).play(respawnfx)
@@ -48,11 +48,14 @@ def main():
                     elif (int(posx) != exitx or int(posy) != exity):
                         if health == 0:
                             health = 5
+                            animate(width, height, mod, move, posx, posy, .01, rot, rot_v, mr, mg, mb, lx, ly, lz,
+                                    mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
+                                    size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, .5/61)
                         pause = 0
                         pg.mixer.Channel(1).play(respawnfx)
                 if pause and event.key == ord('n'): # new game
                     pause = 0
-                    (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, mplayer, minimap,
+                    (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
                      width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sstart, et, count,
                      health, sdir, sdir2, shoot2, sx2, sy2, sstart2, won, et, run, respawn) = new_game(fb, fg, fr, endmsg, score)
                     
@@ -66,6 +69,7 @@ def main():
                         checker = 0
                 if event.key == ord('f'): # toggle fullscreen
                     pg.display.toggle_fullscreen()
+                    fullscreen =  not(fullscreen)
                 if event.key == ord('q'): # change resolution or fps
                     if autores:
                         fps_lock = max(20, fps_lock - 10)
@@ -80,9 +84,10 @@ def main():
             
         if pause:
             clock.tick(30)
-            drawing(gg, gg, gg, height, width, pause, endmsg, won, health, enhealth, minimap, score)
+            drawing(gg, gg, gg, height, width, pause, endmsg, won, health, enhealth, minimap, score, fullscreen)
 
         else:
+            mplayer = np.zeros([size, size])
             (enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2,
              sx2, sy2, sdir2, seenx, seeny, lock, enhealth) = agents(enx, eny, maph, posx, posy, rot, et, shoot,
                                                                      sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer,
@@ -96,21 +101,21 @@ def main():
                                     size, checker, count,fb, fg, fr)
 ##            print(' render ok')
             count += 1
-            if enx != 0 and lock:
-                endmsg = 'Pytracing Maze -   Watch out!      Score:'
+            if enhealth != 0 and lock:
+                endmsg = 'Pytracing Maze -   Watch out!   Score:'+str(score)+' Res: '+ str(width) +'x'+str(height)+'  FPS: '+str(int(clock.get_fps()))
             else:
-                endmsg = 'Pytracing Maze - Find the exit!    Score:'
-            endmsg = endmsg + str(score)+' Res: '+ str(width) +'x' + str(height) + '  FPS: '+ str(int(clock.get_fps()))
+                endmsg = 'Pytracing Maze - Find the exit! Score:'+str(score)+' Res: '+ str(width) +'x'+str(height)+'  FPS: '+str(int(clock.get_fps()))
+
             minimap[int(posy)][int(posx)] = (50, 50, 255)
-            drawing(rr, gg, bb, height, width, pause, endmsg, won, health, enhealth, minimap, score)
+            drawing(rr, gg, bb, height, width, pause, endmsg, won, health, enhealth, minimap, score, fullscreen)
             minimap[int(posy)][int(posx)] = (100, 100, 0)
                 
-            fpss = int(1000/(pg.time.get_ticks() - ticks*100000 +1e-16))
+            fps = int(1000/(pg.time.get_ticks() - ticks*100000 +1e-16))
 
             if autores and count > 10: #auto adjust render resolution
-                if fpss < fps_lock - 10 and width > 100:
+                if fps < fps_lock - 10 and width > 100:
                         width, height, mod, rr, gg, bb, count = adjust_resol(int(width*0.8))
-                elif fpss > fps_lock + 15:
+                elif fps > fps_lock + 15:
                         width, height, mod, rr, gg, bb, count = adjust_resol(int(width*1.1))        
 
             if (int(posx) == exitx and int(posy) == exity):
@@ -128,17 +133,17 @@ def main():
             if shoot or sstart != None:
                 if sstart == None:
                     pg.mixer.Channel(2).play(shotfx)
-                    if fpss < fps_lock and autores:
+                    if fps < fps_lock and autores:
                         width, height, mod, rr, gg, bb, count = adjust_resol(int(width*0.8))
                     sstart = pg.time.get_ticks()
                 elif pg.time.get_ticks() - sstart > 500:
                     shoot, sx, sy, sstart = 0, -1, -1, None
 
-            if enx == 0:
+            if enhealth == 0:
                 if not respawn:
                     if shoot:
                         health = min(health+5, 10)
-                    shoot2, sx2, sy2, run, respawn = 0, -1, -1, 1, 1
+                    shoot2, sx2, sy2, run, respawn, sstart2 = 0, -1, -1, 1, 1, None
                     pg.mixer.Channel(1).play(killfx)                   
                 
             else:
@@ -156,7 +161,7 @@ def main():
                         shoot2, sx2, sy2, sstart2 = 0, -1, -1, None
                         
                     if (sx2 - posx)**2 + (sy2 - posy)**2 < 0.01:
-                        health -= 1 + score/2
+                        health -= 0.5 + score/4
                         if health <= 0:
                             won, pause, health = -1, 1, 0
                             if score > 0:
@@ -172,7 +177,7 @@ def main():
 
             posx, posy, rot, rot_v, shoot, move = movement(pg.key.get_pressed(),posx, posy, rot, rot_v, maph, et, shoot, sstart, move)
             pg.mouse.set_pos([640, 360])
-            mplayer = np.zeros([size, size])
+            
             
         
         pg.display.update()
@@ -230,14 +235,11 @@ def new_map():
 def new_game(fb, fg, fr, endmsg, score):
     width, height, mod, rr, gg, bb, count = adjust_resol(200)
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v = new_map()
-    
-    mplayer, minimap = np.zeros([size, size]), np.zeros((size, size, 3))
-    
+    minimap = np.zeros((size, size, 3))
     animate(width, height, mod, 0, posx, posy, .99, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000, maph, exitx, exity, mapr, mapt, maps,
              rr, gg, bb, 0, 0, -1, -1, -1, -1, size, 3, 0, fb, fg, fr, 0, endmsg, 0, 10, minimap, score, -.5/61)
     
-    return (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v,
-            mplayer, minimap, width, height, mod, rr, gg, bb, count,
+    return (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap, width, height, mod, rr, gg, bb, count,
             0, 0, 0, 0, 0, 1, 0, -1, -1, None, 0.1, 0, 10, 0, 0, 0, -1, -1, None, 0, 0.1, 1, 1)
 #enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sstart, et, count, health, sdir, sdir2, shoot2, sx2, sy2, sstart2, won, et, run, respawn
 
@@ -483,7 +485,7 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh,
         z= 0
         xx = int(3*x%1*100) + int(3*y%1*100)*100
         if int(x) == exitx and int(y) == exity: #exit
-            c1, c2, c3 = fr[xx]/655, fr[xx]/555, fr[xx]/256
+            c1, c2, c3 = fb[xx]/256, fg[xx]/256, np.random.uniform(0.1, 0.8)
         else:
             sh = 0.3 + (x+y)/(3*size)
             c1, c2, c3 = (1-sh/2)*fg[xx]/300, sh*fg[xx]/256, sh*fb[xx]/300
@@ -525,7 +527,7 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh,
         elif z> 0.45: # Head
             c1, c2, c3 = (1-z)*(1-sh), (1-z)*sh, z*sh 
         elif z > 0.28: # Chest
-            c1, c2, c3 = 2*(z-0.28), (z-0.28)*(1-sh), (z-0.28)*sh 
+            c1, c2, c3 = (z-0.28), (z-0.28)*(1-sh), (z-0.28)*sh 
         else: # Roller
             c1, c2, c3 = refx%1*z*(1-sh), refy%1*0.2*sh, refy%1*z*sh 
 
@@ -617,13 +619,12 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
 
 @njit(cache=True)
 def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock, size, enhealth):
-    dtp = (enx-posx)**2 + (eny-posy)**2
-    # respawn
-    if dtp > 200 or enx == 0 and np.random.uniform(0,1) > 0.995:
+    # teletransport or respawn
+    if (enhealth > 0 and (enx-posx)**2 + (eny-posy)**2 > 300) or (enhealth == 0 and np.random.uniform(0,1) > 0.995):
         x, y = np.random.normal(posx, 5), np.random.normal(posy, 5)
         dtp = (x-posx)**2 + (y-posy)**2
         if x > 0 and x < size-1 and y > 0 and y < size-1:
-            if maph[int(x)][int(y)] == 0 and dtp > 25 and dtp < 64:
+            if maph[int(x)][int(y)] == 0 and dtp > 64 and dtp < 100:
                 if enhealth == 0:
                     enx, eny, seenx, seeny, lock, enhealth = x, y, x, y, 0, 10
                 else:
@@ -646,7 +647,7 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
 
         if int(enx) == int(seenx) and int(eny) == int(seeny):
             if not lock:
-                if shoot: #if the player is shooting go towards him
+                if shoot or np.random.uniform(0,1) > 0.7: #if the player is shooting go towards him
                     seenx, seeny = np.random.uniform(enx, posx), np.random.uniform(eny, posy)
                 else:
                     seenx, seeny = np.random.normal(enx, 2), np.random.normal(eny, 2) 
@@ -701,16 +702,15 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
             sdir = rot+np.random.uniform(-.05,.05)
             sx, sy = posx + .5*np.cos(sdir), posy + .5*np.sin(sdir)
         sx, sy = sx + 5*et*np.cos(sdir), sy + 5*et*np.sin(sdir)
-        if sx > 0 and sy < size-1 and sy > 0 and sy < size-1:
-            if enx != 0 and (sx - enx)**2 + (sy - eny)**2 < 0.02:
-                enhealth -= 2
-                if enhealth == 0:
-                    enx, eny, seenx, seeny = 0, 0, 0, 0
-            if (maph[int(sx+.05)][int(sy+.05)] != 0 or maph[int(sx-.05)][int(sy-.05)] != 0 or
-                maph[int(sx-.05)][int(sy+.05)] != 0 or maph[int(sx+.05)][int(sy-.05)] != 0):
-                shoot, sx, sy = 0, -1, -1
-            else:    
+        if (sx > 0 and sy < size-1 and sy > 0 and sy < size-1 and
+            maph[int(sx+.05)][int(sy+.05)] == 0 and maph[int(sx-.05)][int(sy-.05)] == 0 and
+            maph[int(sx-.05)][int(sy+.05)] == 0 and maph[int(sx+.05)][int(sy-.05)] == 0):
                 mplayer[int(sx)][int(sy)] += 12
+                if enhealth != 0 and (sx - enx)**2 + (sy - eny)**2 < 0.02:
+                    shoot, sx, sy = 0, -1, -1
+                    enhealth -= 3.34
+                    if enhealth < 0:
+                        enx, eny, seenx, seeny, enhealth = 0, 0, 0, 0, 0
         else:
             shoot, sx, sy = 0, -1, -1
         
@@ -721,12 +721,10 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
 def adjust_resol(width):
     height = int(0.6*width)
     mod = width/64
-    rr = np.zeros(width * height)
-    gg = np.zeros(width * height)
-    bb = np.zeros(width * height)
+    rr, gg, bb = np.ones(width * height)/2, np.ones(width * height)/2, np.ones(width * height)/2
     return width, height, mod, rr, gg, bb, 0
 
-def drawing(rr, gg, bb, height, width, pause, endmsg, won, health, enhealth, minimap, score, nosplash=True):
+def drawing(rr, gg, bb, height, width, pause, endmsg, won, health, enhealth, minimap, score, fullscreen, nosplash=True):
     global font, font2, screen, surfbg
 
     surfbg.fill(pg.Color("darkgrey"))
@@ -759,14 +757,15 @@ def drawing(rr, gg, bb, height, width, pause, endmsg, won, health, enhealth, min
             if won == 1:
                 screen.blit(font2.render(" Your current score is "+str(score) + ' ', 0, pg.Color("grey"), (80, 34, 80)),(50,490))
             if won == 0:
-                screen.blit(font2.render(" Press P to continue ", 0, pg.Color("grey"), (80, 34, 80)),(50,490))
+                screen.blit(font2.render(" Press P or C to continue ", 0, pg.Color("grey"), (80, 34, 80)),(50,490))
     else:
         size = len(minimap)
         surfmap = pg.surfarray.make_surface(np.flip(minimap).astype('uint8'))
         surfmap = pg.transform.scale(surfmap, (size*4, size*4))
         screen.blit(surfmap,(1280-size*4 - 85, 5), special_flags=pg.BLEND_ADD)
-##        fps = font.render(endmsg, 0, pg.Color("coral"))
-##        screen.blit(fps,(100,1))
+        if fullscreen:
+            fps = font.render(endmsg, 0, pg.Color("coral"))
+            screen.blit(fps,(100,1))
     screen.blit(font2.render(str(score), 0, pg.Color("white")),(1210, 10))
         
     pg.display.update()
@@ -780,7 +779,7 @@ def animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, 
                                 size, 1, count, fb, fg, fr)
         count += 1
         
-        drawing(rr, gg, bb, height, width, pause, endmsg, won, health, 0, minimap, score)
+        drawing(rr, gg, bb, height, width, pause, endmsg, won, health, 0, minimap, score, 0)
         
 def sfx():      
     ambient = pg.mixer.Sound('soundfx/HauntSilentPartner.mp3')
