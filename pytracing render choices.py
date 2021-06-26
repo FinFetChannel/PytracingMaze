@@ -834,6 +834,12 @@ def generate_sounds(freq = 60, var = 500, n = 10):
     sound = pg.sndarray.make_sound(sound.copy())
     return sound
 
+def synth(frames, freq):
+    def frame(i):
+        return 0.2 * 32767 * np.sin(2.0 * np.pi * freq * i / 44100)
+    arr = np.array([frame(x) for x in range(0, frames)]).astype(np.int16)
+    return arr
+
 def generate_textures():
     fr, fg, fb = [], [], []
     for i in range(100):
@@ -848,12 +854,6 @@ def generate_textures():
             fb.append(ref1+np.random.uniform(j/100,ref2*ref1)/3+0.1)
     fr, fg, fb = np.asarray(fr)/max(fr), np.asarray(fg)/3, np.asarray(fb)/3
     return fr, fg, fb
-
-def synth(frames, freq):
-    def frame(i):
-        return 0.2 * 32767 * np.sin(2.0 * np.pi * freq * i / 48000)
-    arr = np.array([frame(x) for x in range(0, frames)]).astype(np.int16)
-    return arr
 
 if __name__ == '__main__':
     pg.init()
