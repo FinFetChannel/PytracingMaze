@@ -21,8 +21,8 @@ def main():
     endmsg = " Numba may need more compiling..."
     
     (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
-     width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sstart, et, count,
-     health, sdir, sdir2, shoot2, sx2, sy2, sstart2, won, et, run, respawn, move) = new_game(fb, fg, fr, endmsg, score)    
+     width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart,
+     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, et, run, respawn, move) = new_game(fb, fg, fr, endmsg, score)    
 
     while running:
         ticks = pg.time.get_ticks()/100000
@@ -57,8 +57,8 @@ def main():
                 if pause and event.key == ord('n'): # new game
                     pause = 0
                     (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
-                     width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sstart, et, count,
-                     health, sdir, sdir2, shoot2, sx2, sy2, sstart2, won, et, run, respawn, move) = new_game(fb, fg, fr, endmsg, score)
+                     width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart,
+                     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, et, run, respawn, move) = new_game(fb, fg, fr, endmsg, score)
                     
                     respawnfx.play()
                     
@@ -89,19 +89,18 @@ def main():
 
         else:
             mplayer = np.zeros([size, size])
-            (enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2,
-             sx2, sy2, sdir2, seenx, seeny, lock, enhealth, health) = agents(enx, eny, maph, posx, posy, rot, et, shoot,
-                                                                             sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer,
-                                                                             seenx, seeny, lock, size, enhealth, health, score)
+            (enx, eny, mplayer, et, shoot, sx, sy, sz, sdir, sdirz, shoot2,
+             sx2, sy2, sz2, sdir2, sdirz2, seenx, seeny, lock, enhealth, health) = agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
+                                                                                          sdirz, shoot2, sx2, sy2, sz2, sdir2, sdirz2, mplayer,
+                                                                                          seenx, seeny, lock, size, enhealth, health, score)
 
             lx, ly, lz = size/2 + 1500*np.cos(ticks), size/2 + 1000*np.sin(ticks), 1000
             rwr = checker
             if shoot2:
                 rwr = 3
-            
             rr, gg, bb = super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
                                     mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
-                                    size, rwr, count, fb, fg, fr)
+                                    size, rwr, count, fb, fg, fr, sz, sz2)
             count += 1
             if enhealth != 0 and lock:
                 endmsg = 'Pytracing Maze -   Watch out!   Score:'+str(score)+' Res: '+ str(width) +'x'+str(height)+'  FPS: '+str(int(clock.get_fps()))+renders[checker]
@@ -152,15 +151,15 @@ def main():
                 if respawn:
                     respawn = 0
                     respawnfx.play()
-                if shoot2 or sy2 == 0 or sstart2 != None:
-                    if run:
-                        run = 0
-                        runfx.play()
-                    if sstart2 == None:
-                        shotfx.play()
-                        sstart2 = pg.time.get_ticks()
-                    elif pg.time.get_ticks() - sstart2 > 500:
-                        shoot2, sx2, sy2, sstart2 = 0, -1, -1, None
+            if shoot2 or sy2 == 0 or sstart2 != None:
+                if run:
+                    run = 0
+                    runfx.play()
+                if sstart2 == None:
+                    shotfx.play()
+                    sstart2 = pg.time.get_ticks()
+                elif pg.time.get_ticks() - sstart2 > 500:
+                    shoot2, sx2, sy2, sstart2 = 0, -1, -1, None
 
             if health <= 0:
                 won, pause, health = -1, 1, 0
@@ -242,8 +241,8 @@ def new_game(fb, fg, fr, endmsg, score):
              rr, gg, bb, 0, 0, -1, -1, -1, -1, size, 2, 0, fb, fg, fr, 0, endmsg, 0, 10, minimap, score, -.5/61)
     
     return (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap, width, height, mod, rr, gg, bb, count,
-            0, 0, 0, 0, 0, 1, 0, -1, -1, None, 0.1, 0, 10, 0, 0, 0, -1, -1, None, 0, 0.1, 1, 1, 0)
-#enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sstart, et, count, health, sdir, sdir2, shoot2, sx2, sy2, sstart2, won, et, run, respawn, move
+            -1, -1, 0, 0, 0, 1, 0, -1, -1, -1, None, 0.1, 10, 0, 0, 0, 0, 0, -1, -1, -1, None, 0, 0.1, 1, 1, 0)
+#enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart, et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, et, run, respawn, move
 
 def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot, sstart, move):
     x, y = (posx, posy)
@@ -336,13 +335,13 @@ def lodev(x, y, z, cos, sin, sinz, maph, size):
     return x, y, z
 
 @njit(cache=True)
-def ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps, enx, eny, sx, sy, sx2, sy2, size):
+def ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps, enx, eny, sx, sy, sx2, sy2, size, sz, sz2):
     x, y, z = posx, posy, posz
     modr, cx, cy, shot, mapv = 1, 1, 1, 0, 0
     dtp = np.random.uniform(0.002,0.01)
     for k in range(2000):
         
-        if (mapv == 0 or (sinz > 0 and (z > mapv or (mapv==6 and (z>0.4 or z <0.2)) or(z > 0.57 and mapv > 1)))): ## LoDev DDA for optimization
+        if (mapv == 0) or (sinz > 0 and (z > mapv or (mapv > 1 and mapv < 6 and z > 0.58))): ## LoDev DDA for optimization
             x, y, z = lodev(x, y, z, cos, sin, sinz, maph, size)
         
         x += cos; y += sin; z += sinz
@@ -353,26 +352,26 @@ def ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps, e
             mapv = 0
         if mapv > 1 and z < 0.58: # check agents
             if mapv == 2 or mapv == 8 or mapv == 3 or mapv == 15:
-                refx, refy, sh = enx, eny, .2
-                if  mapv%2 == 0:
-                    refx, refy, sh = posx, posy, .8                                
+                refx, refy, sh = posx, posy, .8
+                if  mapv%2 != 0:
+                    refx, refy, sh =  enx, eny, .2                               
                 if z> 0.45 and (x-refx)**2 + (y-refy)**2 + (z-0.5)**2 < 0.003 +abs(z-0.47)/30 :
                     break # head
                 if z < 0.45 and z > 0.28 and (x-refx)**2 + (y-refy)**2  < (z/10 - 0.02):
                     break # chest
                 if z < 0.28 and (x-refx)**2 + (y-refy)**2 + (z-0.15)**2 < 0.023 :
                         break #roller
-            if  mapv > 5 and z < 0.4 and z > 0.2:
-                refx = sx; refy = sy
-                if mapv < 12:
-                    refx = sx2; refy = sy2
-                if ((x-refx)**2 + (y-refy)**2 + (z-0.3)**2 < dtp):
-                    shot = 1
-                    break
+        if  mapv > 5:# and z < 0.4 and z > 0.2:
+            refx, refy, refz = sx, sy, sz
+            if mapv < 12:
+                refx, refy, refz = sx2, sy2, sz2
+            if ((x-refx)**2 + (y-refy)**2 + (z-refz)**2 < dtp):
+                shot = 1
+                break
 
         if mapv > z and mapv < 2: # check walls
             if maps[int(x)][int(y)]: # check spheres
-                if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.24):
+                if ((x%1-0.5)**2 + (y%1-0.5)**2 + (z%1-0.5)**2 < 0.24):
                     x, y, z = refine(x, y, z, sin, cos, sinz)
                     if (mapr[int(x)][int(y)]): # spherical mirror
                         if (modr == 1):
@@ -383,7 +382,7 @@ def ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps, e
                         if (mapv - z <= abs(sinz)): ## horizontal surface
                             sinz = -sinz
                         else:
-                            nx = (x-int(x)-0.5)/0.5; ny = (y-int(y)-0.5)/0.5; nz =(z-int(z)-0.5)/0.5
+                            nx = (x%1-0.5)/0.5; ny = (y%1-0.5)/0.5; nz =(z%1-0.5)/0.5
                             dot = 2*(cos*nx + sin*ny + sinz*nz)
                             cos = (cos - nx*dot); sin = (sin - ny*dot); sinz = (sinz - nz*dot)                
                             x += cos; y += sin; z += sinz
@@ -404,17 +403,17 @@ def ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps, e
                     sin = -sin
             else:
                 break
-    return x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh, shot
+    return x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, shot
 
 @njit(cache=True)
 def refine(x, y, z, sin, cos, sinz):
     x -= .9*cos; y -= .9*sin; z -= .9*sinz
-    while ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 - 0.24 > 0):
+    while ((x%1-0.5)**2 + (y%1-0.5)**2 + (z%1-0.5)**2 - 0.24 > 0):
         x += 0.1*cos; y += 0.1*sin; z += 0.1*sinz
     return x, y, z
 
 @njit(cache=True)
-def shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, limodr):
+def shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, limodr, refz):
     x += cos; y += sin; z += sinz # advance one step
     mapv = maph[int(x)][int(y)]
     if z < mapv and mapv < 1:# if already hit something apply dark shade
@@ -430,7 +429,7 @@ def shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, 
         x += cos; y += sin; z += sinz
         mapv = maph[int(x)][int(y)]
         if shot:
-            if mapv > 5 or (sinz > 0 and z > 0.35) or (sinz < 0 and z < 0.35) or modr < limodr:
+            if mapv > 5 or (sinz > 0 and z > refz) or (sinz < 0 and z < refz) or modr < limodr:
                 break
         elif z >1 or modr < limodr:
             break
@@ -454,7 +453,7 @@ def shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, 
     return modr
 
 @njit(cache=True)
-def get_color(x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh, mapt, maps, exitx, exity,
+def get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, mapt, maps, exitx, exity,
               mr, mg, mb, fr, fg, fb, lx, ly, lz, size):
     if z > 1: # ceiling
         norm = np.sqrt(cos**2 + sin**2 + sinz**2)
@@ -506,7 +505,7 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh,
                     
     else: # agents
         if shot: # fireball
-            sh = ((x-refx)**2 + (y-refy)**2 + (z-0.3)**2)/0.012
+            sh = ((x-refx)**2 + (y-refy)**2 + (z-refz)**2)/0.012
             c1, c2, c3 = 1, 0.6*sh+0.2 , 0.2*sh+0.1 
         elif z> 0.45: # Head
             c1, c2, c3 = (1-z)*(1-sh), (1-z)*sh, z*sh 
@@ -521,14 +520,14 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh,
 @njit(cache=True)
 def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
                maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
-               size, checker, count, fb, fg, fr):
-    inv = (count%2)
-    inv2 = -(int(count/2)%2)
+               size, checker, count, fb, fg, fr, sz=0, sz2=0):
+    
+    inv, inv2, garbage, idx = (count%2), -(int(count/2)%2), 0, 0
     if checker == 1:
         garbage = 1 # when true the previous frame will be discarded
-    else:
+    elif checker > 1:
         garbage = not(count)
-    idx = 0
+
     for j in range(height): #vertical loop 
         rot_j = rot_v + (1+move**1.5)*np.deg2rad(24 - j/mod)
         sinzo = (0.04/mod)*np.sin(rot_j) 
@@ -558,10 +557,10 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
                     sin, cos, sinz = coszo*np.sin(rot_i), coszo*np.cos(rot_i), sinzo
                     modr, cx, cy, c1r, c2r, c3r, shot, mapv = 1, 1, 1, 1, 1, 1, 0, 0
                     
-                    x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh, shot = ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps,
-                                                                                                         enx, eny, sx, sy, sx2, sy2, size)
+                    x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, shot = ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps,
+                                                                                                         enx, eny, sx, sy, sx2, sy2, size, sz, sz2)
 
-                    c1, c2, c3, modr, x, y, z, shot = get_color(x, y, z, modr, shot, mapv, refx, refy, cx, cy, sin, cos, sinz, sh, mapt, maps, exitx, exity,
+                    c1, c2, c3, modr, x, y, z, shot = get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, mapt, maps, exitx, exity,
                                                                 mr, mg, mb, fr, fg, fb, lx, ly, lz, size)
 
                     if modr <= 0.7 and not shot: # tinted mirrors
@@ -573,23 +572,27 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
                         if dtp > 7:
                             modr = modr/np.log((dtp-6)/4+np.e)
                         if sx != -1 or sx2 != -1: # fireball
-                            refx, refy, refz, shot, c3 = sx2, sy2, 0.35, 1, c3*0.9
+                            refx, refy, refz, shot, c3 = sx2, sy2, sz2, 1, c3*0.9
                             if sx != -1:
-                                refx, refy = sx, sy
+                                refx, refy, refz = sx, sy, sz
                         dtol = np.sqrt((x-refx)**2+(y-refy)**2+(z-refz)**2)
                         cos, sin, sinz = .01*(refx-x)/dtol, .01*(refy-y)/dtol, .01*(refz-z)/dtol
-                        modr = shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, limodr)
+                        modr = shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, limodr, refz)
                             
                     c1, c2, c3 =  modr*np.sqrt(c1*c1r), modr*np.sqrt(c2*c2r), modr*np.sqrt(c3*c3r)                                                            
 
-                    if checker > 2 and rad > height/2.9 -1 :
+
+                    
+                    if checker == 0 or garbage:
+                        pr[idx], pg[idx], pb[idx] = c1, c2, c3
+                        
+                    elif checker > 2 and rad > height/2.9 -1 :
                         imin, imax, jmin, jmax = max(i-si, 0), min(i+si, width-1), max(j-si, 0), min(j+si, height-1)
                         for jj in range(jmin, jmax):
                             for ii in range(imin, imax):
                                 idx2 = ii + jj*width
-                                pr[idx2], pg[idx2], pb[idx2] = (3*c1 + pr[idx2])/4, (3*c2 + pg[idx2])/4, (3*c3 + pb[idx2])/4 
-                    elif garbage:
-                        pr[idx], pg[idx], pb[idx] = c1, c2, c3
+                                pr[idx2], pg[idx2], pb[idx2] = (3*c1 + pr[idx2])/4, (3*c2 + pg[idx2])/4, (3*c3 + pb[idx2])/4
+                                
                     else:
                         pr[idx], pg[idx], pb[idx] = (3*c1 + pr[idx])/4, (3*c2 + pg[idx])/4, (3*c3 + pb[idx])/4                        
             idx += 1
@@ -612,7 +615,9 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
     return pr, pg, pb
 
 @njit(cache=True)
-def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, mplayer, seenx, seeny, lock, size, enhealth, health, score):
+def agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
+           sdirz, shoot2, sx2, sy2, sz2, sdir2, sdirz2, mplayer,
+           seenx, seeny, lock, size, enhealth, health, score):
 
     mplayer[int(posx)][int(posy)] = 2 # player = 2, npc = 3, npc fireball >=6, player fireball >=12
     if (maph[int(posx+.1)][int(posy+.1)] == 0 and maph[int(posx-.1)][int(posy-.1)] == 0 and
@@ -621,16 +626,16 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
         mplayer[int(posx-0.1)][int(posy+0.1)], mplayer[int(posx-0.1)][int(posy-0.1)] = 2, 2
     
     # teleport or respawn npc
-    if (enhealth > 0 and (enx-posx)**2 + (eny-posy)**2 > 300) or (enhealth == 0 and np.random.uniform(0,1) > 0.995):
+    if (enhealth == 0 and np.random.uniform(0,1) > 0.992) or (enhealth > 0 and (enx-posx)**2 + (eny-posy)**2 > 300) :
         x, y = np.random.normal(posx, 5), np.random.normal(posy, 5)
         dtp = (x-posx)**2 + (y-posy)**2
         if x > 0 and x < size-1 and y > 0 and y < size-1:
-            if maph[int(x)][int(y)] == 0 and dtp < 100 and (dtp > 64 or (np.random.uniform(0,1) > 0.99 and dtp > 36)):
+            if maph[int(x)][int(y)] == 0 and dtp < 100 and (dtp > 64 or (np.random.uniform(0,1) > 0.9 and dtp > 36)):
                 if enhealth == 0:
                     enx, eny, seenx, seeny, lock, enhealth = x, y, x, y, 0, 10
                 else:
                     enx, eny, seenx, seeny, lock = x, y, x, y, 0
-    else: # look for player
+    if enhealth > 0: # look for player
         if not lock or  np.random.uniform(0,1) > 0.99:
             dtp = np.sqrt((enx-posx)**2 + (eny-posy)**2)
             cos, sin = (posx-enx)/dtp, (posy-eny)/dtp
@@ -677,16 +682,17 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
             mplayer[int(enx-0.1)][int(eny+0.1)], mplayer[int(enx-0.1)][int(eny-0.1)] = 3, 3
     
     if lock and not shoot2: # npc fireball initiate
-        shoot2 = 1
+        shoot2, sdirz2  = 1, np.sin(np.random.uniform(0,.2))
         sdir2 = np.arctan((posy-eny)/(posx-enx)) + np.random.uniform(-.1,.1)
         if abs(enx+np.cos(sdir2)-posx) > abs(enx-posx):
             sdir2 = sdir2 - np.pi
         
     if shoot2 and sy2 != 0: # npc fireball
         if sx2 == -1:
-            sx2, sy2 = enx + .5*np.cos(sdir2), eny + .5*np.sin(sdir2)
-        sx2, sy2 = sx2 + 5*et*np.cos(sdir2), sy2 + 5*et*np.sin(sdir2)
-        if sx2 > 0 and sx2 < size-1 and sy2 > 0 and sy2 < size-1:
+            sx2, sy2, sz2 = enx + .5*np.cos(sdir2), eny + .5*np.sin(sdir2), 0.35 + .5*sdirz2
+        sx2, sy2, sz2  = sx2 + 5*et*np.cos(sdir2), sy2 + 5*et*np.sin(sdir2), sz2 + 5*et*sdirz2
+        sdirz2 = sdirz2 - et/5
+        if sx2 > 0 and sx2 < size-1 and sy2 > 0 and sy2 < size-1 and sz2 > 0 and sz2 < 1:
             if (maph[int(sx2+.05)][int(sy2+.05)] != 0 or maph[int(sx2-.05)][int(sy2-.05)] != 0 or
                 maph[int(sx2-.05)][int(sy2+.05)] != 0 or maph[int(sx2+.05)][int(sy2-.05)] != 0):
                 shoot2, sx2, sy2 = 0, -1, -1
@@ -701,10 +707,11 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
             
     if shoot: # player fireball
         if sx == -1:
-            sdir = rot+np.random.uniform(-.05,.05)
-            sx, sy = posx + .5*np.cos(sdir), posy + .5*np.sin(sdir)
-        sx, sy = sx + 5*et*np.cos(sdir), sy + 5*et*np.sin(sdir)
-        if (sx > 0 and sy < size-1 and sy > 0 and sy < size-1 and
+            sdir, sdirz = rot+np.random.uniform(-.05,.05), np.sin(min(rot_v , 0)+np.random.uniform(.1,.2))
+            sx, sy, sz = posx + .5*np.cos(sdir), posy + .5*np.sin(sdir), 0.35 + .5*sdirz
+        sx, sy, sz = sx + 5*et*np.cos(sdir), sy + 5*et*np.sin(sdir), sz + 5*et*sdirz
+        sdirz = sdirz - et/5
+        if (sx > 0 and sy < size-1 and sy > 0 and sy < size-1 and sz > 0 and sz < 1 and
             maph[int(sx+.05)][int(sy+.05)] == 0 and maph[int(sx-.05)][int(sy-.05)] == 0 and
             maph[int(sx-.05)][int(sy+.05)] == 0 and maph[int(sx+.05)][int(sy-.05)] == 0):
             if enhealth > 0 and (sx - enx)**2 + (sy - eny)**2 < 0.02:
@@ -718,7 +725,8 @@ def agents(enx, eny, maph, posx, posy, rot, et, shoot, sx, sy, sdir, shoot2, sx2
             shoot, sx, sy = 0, -1, -1
             
     mplayer = maph + mplayer
-    return(enx, eny, mplayer, et, shoot, sx, sy, sdir, shoot2, sx2, sy2, sdir2, seenx, seeny, lock, enhealth, health)
+    return(enx, eny, mplayer, et, shoot, sx, sy, sz, sdir, sdirz, shoot2,
+           sx2, sy2, sz2, sdir2, sdirz2, seenx, seeny, lock, enhealth, health)
 
 def adjust_resol(width):
     height = int(0.6*width)
