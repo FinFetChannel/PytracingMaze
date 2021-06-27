@@ -22,7 +22,7 @@ def main():
     
     (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
      width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart,
-     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, et, run, respawn, move) = new_game(fb, fg, fr, endmsg, score)    
+     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, respawn, move) = new_game(fb, fg, fr, endmsg, score)    
 
     while running:
         ticks = pg.time.get_ticks()/100000
@@ -58,7 +58,7 @@ def main():
                     pause = 0
                     (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
                      width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart,
-                     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, et, run, respawn, move) = new_game(fb, fg, fr, endmsg, score)
+                     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, respawn, move) = new_game(fb, fg, fr, endmsg, score)
                     
                     respawnfx.play()
                     
@@ -241,8 +241,8 @@ def new_game(fb, fg, fr, endmsg, score):
              rr, gg, bb, 0, 0, -1, -1, -1, -1, size, 2, 0, fb, fg, fr, 0, endmsg, 0, 10, minimap, score, -.5/61)
     
     return (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap, width, height, mod, rr, gg, bb, count,
-            -1, -1, 0, 0, 0, 1, 0, -1, -1, -1, None, 0.1, 10, 0, 0, 0, 0, 0, -1, -1, -1, None, 0, 0.1, 1, 1, 0)
-#enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart, et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, et, run, respawn, move
+            -1, -1, 0, 0, 0, 1, 0, -1, -1, -1, None, 0.1, 10, 0, 0, 0, 0, 0, -1, -1, -1, None, 0, 1, 0)
+#enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart, et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, respawn, move
 
 def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, shoot, sstart, move):
     x, y = (posx, posy)
@@ -481,7 +481,7 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sin
     elif mapv < 2: # walls
         c1, c2, c3 = mr[int(x)][int(y)], mg[int(x)][int(y)], mb[int(x)][int(y)]
         mapvt = mapt[int(x)][int(y)]
-        if mapv - z <= abs(sinz): # round coordinates and sligth shade
+        if mapv - z <= abs(sinz): # round coordinates and pre shade
             z = mapv
         elif not maps[int(x)][int(y)]:
             if int(x-cos) != int(x):
@@ -630,7 +630,7 @@ def agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
         x, y = np.random.normal(posx, 5), np.random.normal(posy, 5)
         dtp = (x-posx)**2 + (y-posy)**2
         if x > 0 and x < size-1 and y > 0 and y < size-1:
-            if maph[int(x)][int(y)] == 0 and dtp < 100 and (dtp > 64 or (np.random.uniform(0,1) > 0.9 and dtp > 36)):
+            if maph[int(x)][int(y)] == 0 and dtp > 49 :
                 if enhealth == 0:
                     enx, eny, seenx, seeny, lock, enhealth = x, y, x, y, 0, 10
                 else:
@@ -671,9 +671,13 @@ def agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
                 x, y = enx + et*sin, eny - et*cos
             if maph[int(x)][int(y)] == 0: # try again
                 enx, eny = x, y
-            else: # release lock and set random target
-                seenx, seeny = enx+np.random.normal(0,3), eny+np.random.normal(0,3)
-                lock = 0
+            elif np.random.uniform(0,1) > 0.5: # update target
+                if lock and np.random.uniform(0,1) > 0.5:
+                    seenx, seeny = np.random.normal(posx, 2), np.random.normal(posy, 2)
+                    if np.random.uniform(0,1) > 0.99: # release lock if stuck
+                        lock = 0
+                else:
+                    seenx, seeny = enx+np.random.normal(0,3), eny+np.random.normal(0,3)
                 
         mplayer[int(enx)][int(eny)] = 3 # mark npc position and adjacent positions 
         if (maph[int(enx+.1)][int(eny+.1)] == 0 and maph[int(enx-.1)][int(eny-.1)] == 0 and
