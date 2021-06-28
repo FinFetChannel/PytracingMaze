@@ -3,7 +3,6 @@ import pygame as pg
 from numba import njit
 
 def main():
-
     running, pause, fps_lock, score, maxscore, fullscreen = 1, 1, 59, 0, 0, 0
     timer, autores, checker, count, enhealth = 0, 1, 2, 0, 0
     renders = [' R: Standard. ', ' R: Doubled pixels. ', ' R: Checkerboard. ', ' R: Radial window. ', ' R: Squared window. ']
@@ -51,7 +50,7 @@ def main():
                             health = 5
                             animate(width, height, mod, move, posx, posy, .01, rot, rot_v, mr, mg, mb, lx, ly, lz,
                                     mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
-                                    size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, .5/61, clock.get_fps())
+                                    size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, .5/61, fps)
                         pause = 0
                         respawnfx.play()
                 if pause and event.key == ord('n'): # new game
@@ -112,7 +111,6 @@ def main():
             minimap[int(posy)][int(posx)] = (100, 100, 0)
                 
             fps = int(1000/(pg.time.get_ticks() - ticks*100000 +1e-16))
-
             if autores and count > 10: #auto adjust render resolution
                 if fps < fps_lock - 10 and width > 100:
                         width, height, mod, rr, gg, bb, count = adjust_resol(int(width*0.8))
@@ -182,7 +180,6 @@ def main():
 
     pg.mixer.fadeout(1000)
     print(endmsg)
-    
     posz, ani = 0.5, .5/61
     if health <= 0:
         posz, ani = 0.01, .99/61
@@ -191,7 +188,7 @@ def main():
         
     animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000,
             maph, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
-            size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, ani)
+            size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, ani, fps)
     
     pg.quit()
 
@@ -522,18 +519,15 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
                maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
                size, checker, count, fb, fg, fr, sz=0, sz2=0):
     
-    inv, inv2, garbage, idx = (count%2), -(int(count/2)%2), 0, 0
-    if checker == 1:
-        garbage = 1 # when true the previous frame will be discarded
-    elif checker > 1:
-        garbage = not(count)
-
+    inv, inv2, garbage, idx = (count%2), -(int(count/2)%2), not(count), 0
+    if checker == 0:
+        garbage = 0
     for j in range(height): #vertical loop 
         rot_j = rot_v + (1+move**1.5)*np.deg2rad(24 - j/mod)
         sinzo = (0.04/mod)*np.sin(rot_j) 
         coszo = (0.04/mod)*np.sqrt(abs(np.cos(rot_j)))        
         for i in range(width): #horizontal vision loop
-            if garbage and idx%2 == 1:
+            if (checker == 1 or garbage) and idx%2 == 1:
                 pr[idx], pg[idx], pb[idx] = pr[idx-1], pg[idx-1], pb[idx-1]
             else:
                 if checker == 3: # radial
@@ -541,7 +535,7 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
                 elif checker == 4: # square
                     rad = max(abs(i-width/2)*1, abs(j-height/2))
                 
-                if (checker == 0 or garbage or # standard and doubled pixels, first frame after res adjust
+                if (checker < 2 or garbage or # standard and doubled pixels, first frame after res adjust
                     (checker == 2 and ((inv and i%2 == j%2) or (not(inv) and i%2 != j%2))) or # checkerboard
                     (checker > 2 and ((rad < height/2.9 and ((inv and i%2 == j%2) or (not(inv) and i%2 != j%2))) or # radial and square
                                       (rad > height/2.9 and rad < height/1.9 and (((i+2*inv)%3 == 0 and  (j+2*inv2)%3 == 0))) or
@@ -626,7 +620,7 @@ def agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
         mplayer[int(posx-0.1)][int(posy+0.1)], mplayer[int(posx-0.1)][int(posy-0.1)] = 2, 2
     
     # teleport or respawn npc
-    if (enhealth == 0 and np.random.uniform(0,1) > 0.992) or (enhealth > 0 and (enx-posx)**2 + (eny-posy)**2 > 300) :
+    if (enhealth == 0 and np.random.uniform(0,1) > 0.995) or (enhealth > 0 and (enx-posx)**2 + (eny-posy)**2 > 300) :
         x, y = np.random.normal(posx, 5), np.random.normal(posy, 5)
         dtp = (x-posx)**2 + (y-posy)**2
         if x > 0 and x < size-1 and y > 0 and y < size-1:
@@ -703,7 +697,7 @@ def agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
             else:
                 if (sx2 - posx)**2 + (sy2 - posy)**2 < 0.01:
                     shoot2, sx2, sy2 = 0, -1, 0
-                    health -= min(1 + score/4, 2)
+                    health -= min(1 + score/4, 5)
                 else:
                     mplayer[int(sx2)][int(sy2)] += 6
         else:
@@ -720,7 +714,7 @@ def agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
             maph[int(sx-.05)][int(sy+.05)] == 0 and maph[int(sx+.05)][int(sy-.05)] == 0):
             if enhealth > 0 and (sx - enx)**2 + (sy - eny)**2 < 0.02:
                 shoot, sx, sy = 0, -1, -1
-                enhealth -= max(3.34 -score/4, 1)
+                enhealth -= max(5 -score/4, 1)
                 if enhealth <= 0:
                     enx, eny, seenx, seeny, enhealth = 0, 0, 0, 0, 0
             else:
