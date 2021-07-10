@@ -174,7 +174,7 @@ def main():
             if count > 10 and count%3 == 0:
                 fps = int(1000/(pg.time.get_ticks() - ticks*100000 +1e-16))
                 pg.display.set_caption(endmsg + ' Options: P or C - Pause, F - Fulscreen, Q/W - FPS lock/Res, R - Render type, T - AutoRes, Y - Blur ')
-                if autores:
+                if autores and not pause:
                     if move + spin == 0 and not shoot and not shoot2:
                         if fps < fps_lock*0.4 or fps > 0.6*fps_lock:
                             width, height, mod, rr, gg, bb, count = adjust_resol(max(100, int(width*np.sqrt(2*fps/fps_lock))))
