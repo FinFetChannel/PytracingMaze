@@ -5,8 +5,10 @@ from numba import njit
 def main(): 
     running, pause, fps, fps_lock, score, maxscore, fullscreen = 1, 1, 60, 59, 0, 0, 0
     timer, autores, checker, count, enhealth, spin, blur = 0, 1, 2, 0, 0, 0, 0
-    renders = [' R: Standard. ', ' R: Doubled pixels. ', ' R: Checkerboard. ', ' R: Radial window. ', ' R: Blocky ']
+    renders = [' R: Standard. ', ' R: Doubled pixels. ', ' R: Checkerboard. ', ' R: Radial window. ', ' R: Blurry ']
     endmsg = ' Numba compiling, please wait... '
+    ambient, runfx, shotfx, killfx, respawnfx, successfx, failfx, fr, fg, fb = sfx()
+
     rr, gg, bb = np.linspace(0,0.8, 25*14), np.linspace(0.5,.1, 25*14), np.linspace(1,0.1, 25*14)
     drawing(rr, gg, bb, 14, 25, 1, endmsg, 0, 10, 10, np.zeros([3,3]), score, fullscreen, False)
     pg.time.wait(200)
@@ -14,14 +16,13 @@ def main():
     clock = pg.time.Clock()
     pg.mouse.set_visible(False)
     pg.mixer.init()
-    ambient, runfx, shotfx, killfx, respawnfx, successfx, failfx, fr, fg, fb = sfx()
     ambient.set_volume(0.5)
     ambient.play(-1)
     endmsg = " Numba may need more compiling..."
     
     (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
      width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart,
-     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, respawn, move) = new_game(fb, fg, fr, endmsg, score)    
+     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, respawn, move) = new_game(fb, fg, fr, endmsg, score, 300)    
 
     while running:
         ticks = pg.time.get_ticks()/100000
@@ -59,7 +60,7 @@ def main():
                         score = max( 0, score -1)
                     (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap,
                      width, height, mod, rr, gg, bb, count, enx, eny, seenx, seeny, lock, run, shoot, sx, sy, sz, sstart,
-                     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, respawn, move) = new_game(fb, fg, fr, endmsg, score)
+                     et, health, sdir, sdirz, sdir2, sdirz2, shoot2, sx2, sy2, sz2, sstart2, won, respawn, move) = new_game(fb, fg, fr, endmsg, score, width)
                     
                     respawnfx.play()
                     
@@ -176,8 +177,8 @@ def main():
                 pg.display.set_caption(endmsg + ' Options: P or C - Pause, F - Fulscreen, Q/W - FPS lock/Res, R - Render type, T - AutoRes, Y - Blur ')
                 if autores and not pause:
                     if move + spin == 0 and not shoot and not shoot2:
-                        if fps < fps_lock*0.4 or fps > 0.6*fps_lock:
-                            width, height, mod, rr, gg, bb, count = adjust_resol(max(100, int(width*np.sqrt(2*fps/fps_lock))))
+                        if fps < 20 or fps > 30:
+                            width, height, mod, rr, gg, bb, count = adjust_resol(max(100, int(width*np.sqrt(fps/25))))
                     elif fps < fps_lock*0.8 or fps > fps_lock*1.1: #auto adjust render resolution
                             width, height, mod, rr, gg, bb, count = adjust_resol(max(100, int(width*np.sqrt(fps/fps_lock))))
             
@@ -236,8 +237,8 @@ def new_map(score):
     
     return mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v
 
-def new_game(fb, fg, fr, endmsg, score):
-    width, height, mod, rr, gg, bb, count = adjust_resol(200)
+def new_game(fb, fg, fr, endmsg, score, width):
+    width, height, mod, rr, gg, bb, count = adjust_resol(width)
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v = new_map(score)
     minimap = np.zeros((size, size, 3))
     animate(width, height, mod, 0, posx, posy, .99, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000, maph, exitx, exity, mapr, mapt, maps,
@@ -545,8 +546,8 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
                     x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, shot = ray_caster(posx, posy, posz, sin, cos, sinz, lx, ly, lz, maph, mapr, maps,
                                                                                                          enx, eny, sx, sy, sx2, sy2, size, sz, sz2)
 
-                    if enx != 0 and refx == enx:
-                        enemy = 1
+                    if refx == enx:
+                        enemy = enx
                     c1, c2, c3, modr, x, y, z, shot = get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, mapt, maps, exitx, exity,
                                                                 mr, mg, mb, fr, fg, fb, lx, ly, lz, size)
 
@@ -593,7 +594,7 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
              
             idx += 1
 
-    if checker != 0 and (move > 0 or checker==1 or enemy): # fill gaps and smoothing
+    if checker != 0 and (move > 0 or checker==1 or enemy > 0): # fill gaps and smoothing
         idx = 0
         for j in range(height): #vertical loop        
             for i in range(width): #horizontal vision loop
@@ -745,56 +746,55 @@ def pixelize(rr, gg, bb, height, width):
     return pixels
         
 def drawing(rr, gg, bb, height, width, pause, endmsg, won, health, enhealth, minimap, score, fullscreen, nosplash=True, blur=0):
-    global font, font2, screen, surfbg
-    surfbg.fill(pg.Color("darkgrey"))
-    pg.draw.rect(surfbg, (200-int(health*20), 50+int(health*20), 50+int(health*10)),(1205,int(700-62*health),30,int(63*health)))
-    pg.draw.rect(surfbg, (enhealth*25, 200-enhealth*10, 50),(1245,700-62*enhealth,30,63*enhealth))
-
+    
+    pg.draw.rect(surfbg, pg.Color("darkgrey"),(1205,80,70,640))
+    pg.draw.rect(surfbg, (200-int(health*20), 50+int(health*20), 50+int(health*10)),(1205,int(700-57*health),30,int(58*health)))
+    pg.draw.rect(surfbg, (enhealth*25, 200-enhealth*10, 50),(1245,700-57*enhealth,30,58*enhealth))
+    surfbg.blit(font2.render(str(score), 0, pg.Color("white")),(1210, 75))
+    
     pixels = pixelize(rr, gg, bb, height, width)
     surf = pg.surfarray.make_surface(np.rot90(pixels).astype('uint8'))
-
     if blur:
-        surf = pg.transform.smoothscale(surf, (1197, 718))
+        surf = pg.transform.smoothscale(surf, (1200, 720))
     else:
-        surf = pg.transform.scale(surf, (1197, 718))
-    if not nosplash or pause:
-        px, py = 1100, 360
-        if nosplash:
-            px, py = pg.mouse.get_pos()
-        for i in range(3):
-            pg.draw.circle(surf, (50, 70+i*20, 160+i*40), [px+i*10,py-i*10], 50-i*15)
-            pg.draw.circle(surf, (60+i*10, 100+i*20, 100+i*10), [px+i*10,py+280-i*1], 90-i*15)
-            pg.draw.polygon(surf, (150+i*30, 34+i*10, 60+i*10), [[px-100+i*20,py+40+i*15],[px+100-i*20,py+40+i*15],[px+50-i*15,py+205-i*15],[px-50+i*15,py+205-i*15]])
-    screen.blit(surfbg, (0, 0))
-    screen.blit(surf, (2, 1))
+        surf = pg.transform.scale(surf, (1200, 720))   
+    surfbg.blit(surf, (0, 0))
     
-    if pause:        
-        screen.blit(font2.render(" PyTracing Maze by FinFET ", 0, pg.Color("red")),(45,45))
-        screen.blit(font2.render(" PyTracing Maze by FinFET ", 0, pg.Color("blue")),(55,55))
-        screen.blit(font2.render(" PyTracing Maze by FinFET ", 0, pg.Color("white")),(50,50))
-        screen.blit(font2.render(endmsg, 0, pg.Color("salmon"), (100, 34, 60)),(50,420))
+    if pause:
+        avatar(nosplash)
+        surfbg.blit(font2.render(endmsg, 0, pg.Color("salmon"), (100, 34, 60)),(50,420))
         if nosplash:
-            screen.blit(font2.render(" Press N for a new game ", 0, pg.Color("grey"), (45, 34, 100)),(50,560))
-            screen.blit(font2.render(" Press ESC to leave ", 0, pg.Color("grey"), (13, 34, 139)),(50,630))
+            surfbg.blit(font2.render(" Press N for a new game ", 0, pg.Color("grey"), (45, 34, 100)),(50,560))
+            surfbg.blit(font2.render(" Press ESC to leave ", 0, pg.Color("grey"), (13, 34, 139)),(50,630))
             if won == 1:
-                screen.blit(font2.render(" Your current score is "+str(score) + ' ', 0, pg.Color("grey"), (80, 34, 80)),(50,490))
+                surfbg.blit(font2.render(" Your current score is "+str(score) + ' ', 0, pg.Color("grey"), (80, 34, 80)),(50,490))
             if won == 0:
-                screen.blit(font2.render(" Press P or C to continue ", 0, pg.Color("grey"), (80, 34, 80)),(50,490))
+                surfbg.blit(font2.render(" Press P or C to continue ", 0, pg.Color("grey"), (80, 34, 80)),(50,490))
     else:
         size = len(minimap)
         surfmap = pg.surfarray.make_surface(np.flip(minimap).astype('uint8'))
         surfmap = pg.transform.scale(surfmap, (size*4, size*4))
-        screen.blit(surfmap,(1280-size*4 - 85, 5), special_flags=pg.BLEND_ADD)
+        surfbg.blit(surfmap,(1280-size*4 - 85, 5), special_flags=pg.BLEND_ADD)
         if fullscreen:
-            fps = font.render(endmsg, 0, pg.Color("coral"))
-            screen.blit(fps,(100,1))
-    screen.blit(font2.render(str(score), 0, pg.Color("white")),(1210, 10))
-        
+            surfbg.blit(font.render(endmsg, 0, pg.Color("coral")),(100,1))
+    
+    screen.blit(surfbg, (0, 0))   
     pg.display.update()
 
+def avatar(nosplash):
+    px, py = 1000, 200
+    if nosplash and pg.mouse.get_focused():
+        px, py = pg.mouse.get_pos()
+        px = min(1098, px)
+    for i in range(3):
+        pg.draw.circle(surfbg, (50, 70+i*20, 160+i*40), [px+i*10,py-i*10], 50-i*15)
+        pg.draw.circle(surfbg, (60+i*10, 100+i*20, 100+i*10), [px+i*10,py+280-i*1], 90-i*15)
+        pg.draw.polygon(surfbg, (150+i*30, 34+i*10, 60+i*10), [[px-100+i*20,py+40+i*15],[px+100-i*20,py+40+i*15],[px+50-i*15,py+205-i*15],[px-50+i*15,py+205-i*15]])
+        surfbg.blit(font2.render(" PyTracing Maze by FinFET ", 0, (130+30*i**2, 10+i*120, 100+i*75)),(45+i*5,45+i*5))
+    
 def animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, #simple up and down animation
             maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
-            size, checker, count, fb, fg, fr, pause, endmsg, won, health, minimap, score, ani, fps=60):
+            size, checker, count, fb, fg, fr, pause, endmsg, won, health, minimap, score, ani, fps=30):
     fps = max(20, fps)
     ani = ani*60/fps
     for i in range(int(fps)):
@@ -802,7 +802,6 @@ def animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, 
                                 maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
                                 size, checker, count, fb, fg, fr)
         count += 1
-        
         drawing(rr, gg, bb, height, width, pause, endmsg, won, health, 0, minimap, score, 0)
         
 def sfx():  #load sounds and textures
@@ -816,14 +815,14 @@ def sfx():  #load sounds and textures
         failfx = pg.mixer.Sound('soundfx/fail.mp3')
     except:
         print("Sounds missing! Generating replacements...")
-        ambient = generate_sounds(75, 10000, 300)
+        ambient = generate_sounds(75, 10000, 30)
         runfx = generate_sounds(200, 800, 150)
         shotfx = generate_sounds(200, 200, 250)
         killfx = generate_sounds(1620, 241, 230)
         respawnfx = generate_sounds(230, 350, 80)
         successfx = generate_sounds(300, 900, 100)
         failfx = generate_sounds(700, 200, 350)
-    try:        
+    try:
         floor = pg.surfarray.array3d(pg.image.load('soundfx/textures.jpg'))
         fr, fg, fb = np.dsplit(floor,floor.shape[-1])
         fr, fg, fb = fr.flatten()/255, fg.flatten()/255, fb.flatten()/255
@@ -881,7 +880,14 @@ if __name__ == '__main__':
     pg.display.set_caption("Welcome to Pytracing maze! Stutters may occur on first run while Numba is compiling")
     font = pg.font.SysFont("Arial", 18)
     font2 = pg.font.SysFont("Impact", 48)
+    
     screen = pg.display.set_mode((1280, 720))
     surfbg = pg.Surface((1280,720))
+    surfbg.fill(pg.Color("darkgrey"))
+    try:
+        logo = pg.image.load('soundfx/logo.gif').convert_alpha()
+    except:
+        logo = font.render("FinFET ", 0, pg.Color("red"))
+    surfbg.blit(logo,(1205, 5))
     
     main()
