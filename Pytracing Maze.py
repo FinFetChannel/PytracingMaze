@@ -49,7 +49,7 @@ def main():
                         if health == 0:
                             health = 5
                             animate(width, height, mod, move, posx, posy, .01, rot, rot_v, mr, mg, mb, lx, ly, lz,
-                                    mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
+                                    mplayer, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
                                     size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, .5/61, fps)
                         pause = 0
                         respawnfx.play()
@@ -92,6 +92,7 @@ def main():
 
         else:
             mplayer = np.zeros([size, size])
+            mplayer[exitx][exity] = 0.01
             (enx, eny, mplayer, et, shoot, sx, sy, sz, sdir, sdirz, shoot2,
              sx2, sy2, sz2, sdir2, sdirz2, seenx, seeny, lock, enhealth, health) = agents(enx, eny, maph, posx, posy, rot, rot_v, et, shoot, sx, sy, sz, sdir,
                                                                                           sdirz, shoot2, sx2, sy2, sz2, sdir2, sdirz2, mplayer,
@@ -105,7 +106,7 @@ def main():
                 elif spin > 0.04:
                     rwr = 4
             rr, gg, bb = super_fast(width, height, mod, move+spin/10, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
-                                    mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
+                                    mplayer, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
                                     size, rwr, garbage, fb, fg, fr, sz, sz2)
 
             count += 1
@@ -124,7 +125,7 @@ def main():
                 endmsg, won = " You escaped safely! ", 1
                 successfx.play()
                 animate(width, height, mod, move, posx, posy, .5, rot, rot_v, mr, mg, mb, lx, ly, lz,
-                        mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
+                        mplayer, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
                         size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, .5/61, fps)
                 pause = 1
                 score += 1
@@ -164,7 +165,7 @@ def main():
                 endmsg = " You died! Current score: " + str(score) + ' '
                 failfx.play()
                 animate(width, height, mod, move, posx, posy, .5, rot, rot_v, mr, mg, mb, lx, ly, lz,
-                        mplayer, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
+                        mplayer, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
                         size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, -.5/61, fps)
                 enx, eny, seenx, seeny, lock, won, enhealth  = 0, 0, 0, 0, 0, 0, 0
 
@@ -195,7 +196,7 @@ def main():
         posz, ani = 0.99, -.99/61
         
     animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000,
-            maph, exitx, exity, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
+            maph, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
             size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, ani, fps)
     
     pg.quit()
@@ -231,6 +232,7 @@ def new_map(score):
                 dtx = np.sqrt((x-posx)**2 + (y-posy)**2)
                 if (dtx > size*.6 and np.random.uniform() > .99) or np.random.uniform() > .99999:
                     exitx, exity = (x, y)
+                    mapr[x][y], maps[x][y], mr[x][y], mg[x][y], mb[x][y] = 1, 0, 1, 1, 1
                     break
             else:
                 count = count+1
@@ -241,7 +243,7 @@ def new_game(fb, fg, fr, endmsg, score, width):
     width, height, mod, rr, gg, bb, count = adjust_resol(width)
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v = new_map(score)
     minimap = np.zeros((size, size, 3))
-    animate(width, height, mod, 0, posx, posy, .99, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000, maph, exitx, exity, mapr, mapt, maps,
+    animate(width, height, mod, 0, posx, posy, .99, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000, maph, mapr, mapt, maps,
              rr, gg, bb, 0, 0, -1, -1, -1, -1, size, 1, 0, fb, fg, fr, 0, endmsg, 0, 10, minimap, score, -.5/61)
     
     return (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap, width, height, mod, rr, gg, bb, count,
@@ -450,7 +452,7 @@ def shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, 
     return modr
 
 @njit(cache=True)
-def get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, mapt, maps, exitx, exity,
+def get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, mapt, maps,
               mr, mg, mb, fr, fg, fb, lx, ly, lz, size):
     if z > 1: # ceiling
         norm = np.sqrt(cos**2 + sin**2 + sinz**2)
@@ -472,8 +474,6 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sin
     elif z < 0: # floor
         xx, sh = int(3*x%1*100) + int(3*y%1*100)*100, 0.3 + (x+y)/(3*size)
         c1, c2, c3, z = .85*(1-sh/2)*fg[xx], sh*fg[xx], 0.85*sh*fb[xx], 0
-        if int(x) == exitx and int(y) == exity: #exit
-            c3 = np.random.uniform(0.5, 1)
                 
     elif mapv < 2: # walls
         c1, c2, c3 = mr[int(x)][int(y)], mg[int(x)][int(y)], mb[int(x)][int(y)]
@@ -514,7 +514,7 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sin
         
 @njit(cache=True)
 def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz,
-               maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
+               maph, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
                size, checker, count, fb, fg, fr, sz=0, sz2=0):
     
     inv, inv2, garbage, idx = (count%2), -(int(count/2)%2), not(not(count)), 0
@@ -548,7 +548,7 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
 
                     if refx == enx:
                         enemy = enx
-                    c1, c2, c3, modr, x, y, z, shot = get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, mapt, maps, exitx, exity,
+                    c1, c2, c3, modr, x, y, z, shot = get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sinz, sh, mapt, maps,
                                                                 mr, mg, mb, fr, fg, fb, lx, ly, lz, size)
 
                     if modr <= 0.7 and not shot: # tinted mirrors
@@ -793,13 +793,13 @@ def avatar(nosplash):
         surfbg.blit(font2.render(" PyTracing Maze by FinFET ", 0, (130+30*i**2, 10+i*120, 100+i*75)),(45+i*5,45+i*5))
     
 def animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, #simple up and down animation
-            maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
+            maph, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
             size, checker, count, fb, fg, fr, pause, endmsg, won, health, minimap, score, ani, fps=30):
     fps = max(20, fps)
     ani = ani*60/fps
     for i in range(int(fps)):
         rr, gg, bb = super_fast(width, height, mod, 0.1, posx, posy, posz+ani*i, rot, rot_v, mr, mg, mb, lx, ly, lz,
-                                maph, exitx, exity, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
+                                maph, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
                                 size, checker, count, fb, fg, fr)
         count += 1
         drawing(rr, gg, bb, height, width, pause, endmsg, won, health, 0, minimap, score, 0)
