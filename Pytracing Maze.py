@@ -460,16 +460,13 @@ def get_color(x, y, z, modr, shot, mapv, refx, refy, refz, cx, cy, sin, cos, sin
         deltaDistZ = (lz-z)/rayDirZ
         x += deltaDistZ*rayDirX; y += deltaDistZ*rayDirY; z = lz
         dtol = np.sqrt((x-lx)**2+(y-ly)**2)
+        sh = 1- 50/dtol
 
-        if dtol < 100: #light source
+        if dtol < 50: #light source
             c1, c2, c3, shot = 1, 1, 0.7, 1
         else:
-            angle = np.rad2deg(np.arctan((y-ly)/(x-lx)))/np.random.uniform(12,15)
-            sh = min((0.8+ abs(angle - int(angle))/5)/(dtol/1000), 1)
-            if int(angle)%2 == 1:
-                c1, c2, c3 = 0.82*(1-sh), 0.86*(1-sh/4), (1-sh/10)
-            else:
-                c1, c2, c3 = 0.8*(1-sh), 0.9*(1-sh/4), (1-sh/10)*0.9
+            xx = abs(int((x/1000+lx/50)%100) + int((y/1000+ly/50)%100)*100)
+            c1, c2, c3 = 1-fb[xx]*sh, 1-fg[xx]*sh*.5, 0.5*(1+sh)
             
     elif z < 0: # floor
         xx, sh = int(3*x%1*100) + int(3*y%1*100)*100, 0.3 + (x+y)/(3*size)
@@ -732,7 +729,6 @@ def adjust_resol(width):
 @njit(cache=True)
 def pixelize(rr, gg, bb, height, width):
     pixels = np.dstack((rr,gg,bb))
-##    pixels = pixels/max(0.85, np.sqrt(pixels.max()))
     pixels = np.reshape(pixels*255, (height,width,3))
     return pixels
         
