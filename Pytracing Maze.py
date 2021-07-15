@@ -183,7 +183,7 @@ def main():
     elif int(posx) == exitx and int(posy) == exity:
         posz, ani = 0.99, -.99/61
         
-    animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000,
+    animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, 1, 1, 1,
             maph, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
             size, checker, count,fb, fg, fr, pause, endmsg, won, health, minimap, score, ani, fps)
     
@@ -231,7 +231,7 @@ def new_game(fb, fg, fr, endmsg, score, width):
     width, height, mod, rr, gg, bb, count = adjust_resol(width)
     mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v = new_map(score)
     minimap = np.zeros((size, size, 3))
-    animate(width, height, mod, 0, posx, posy, .99, rot, rot_v, mr, mg, mb, size/2 + 1500, size/2 + 1000, 1000, maph, mapr, mapt, maps,
+    animate(width, height, mod, 0, posx, posy, .99, rot, rot_v, mr, mg, mb, 1, 1, 1, maph, mapr, mapt, maps,
              rr, gg, bb, 0, 0, -1, -1, -1, -1, size, 1, 0, fb, fg, fr, 0, endmsg, 0, 10, minimap, score, -.5/61)
     
     return (mr, mg, mb, maph, mapr, exitx, exity, mapt, maps, posx, posy, posz, size, rot, rot_v, minimap, width, height, mod, rr, gg, bb, count,
@@ -250,7 +250,7 @@ def movement(pressed_keys,posx, posy, rot, rot_v, maph, et, move):
         diag = 0.5
         x, y, move, diag = x + et*np.cos(rot), y + et*np.sin(rot), move + et/6, 1
 
-    elif move == 0 and pressed_keys[pg.K_DOWN] or pressed_keys[ord('s')]:
+    elif pressed_keys[pg.K_DOWN] or pressed_keys[ord('s')]:
         x, y, diag = x - et*np.cos(rot), y - et*np.sin(rot), 1
         
     if pressed_keys[pg.K_LEFT] or pressed_keys[ord('a')]:
@@ -781,13 +781,15 @@ def avatar(nosplash):
         surfbg.blit(font2.render(" PyTracing Maze by FinFET ", 0, (130+30*i**2, 10+i*120, 100+i*75)),(45+i*5,45+i*5))
     
 def animate(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, mb, lx, ly, lz, #simple up and down animation
-            maph, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
+            maph, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
             size, checker, count, fb, fg, fr, pause, endmsg, won, health, minimap, score, ani, fps=30):
     fps = max(20, fps)
     ani = ani*60/fps
     for i in range(int(fps)):
+        ticks = pg.time.get_ticks()/100000
+        lx, ly, lz = size/2 + 1500*np.cos(ticks), size/2 + 1000*np.sin(ticks), 1000
         rr, gg, bb = super_fast(width, height, mod, 0.1, posx, posy, posz+ani*i, rot, rot_v, mr, mg, mb, lx, ly, lz,
-                                maph, mapr, mapt, maps, pr, pg, pb, enx, eny, sx, sy, sx2, sy2,
+                                maph, mapr, mapt, maps, rr, gg, bb, enx, eny, sx, sy, sx2, sy2,
                                 size, checker, count, fb, fg, fr)
         count += 1
         drawing(rr, gg, bb, height, width, pause, endmsg, won, health, 0, minimap, score, 0)
