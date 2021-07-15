@@ -411,34 +411,44 @@ def refine(x, y, z, sin, cos, sinz): # smoother spheres
     return x, y, z
 
 @njit(cache=True)
-def shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, refz):
+def shadow_ray(x, y, z, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, refx, refy, refz):
+    dtol = np.sqrt((x-refx)**2+(y-refy)**2+(z-refz)**2)
+    cos, sin, sinz = .01*(refx-x)/dtol, .01*(refy-y)/dtol, .01*(refz-z)/dtol
+    x += cos; y += sin; z += sinz # advance one step
     mapv = maph[int(x)][int(y)]
-    for k in range(1000):
-        if (mapv == 0) or not shot and ((z > mapv) or (z > 0.58 and mapv > 1)): ## LoDev DDA for optimization
-            x, y, z = lodev(x, y, z, cos, sin, sinz, maph, size)
-        x += cos; y += sin; z += sinz
-        mapv = maph[int(x)][int(y)]
-        if modr < 0.5 or z >1:
-            break
-        if shot and (mapv > 5 or (sinz > 0 and z > refz) or (sinz < 0 and z < refz)):
-            break
-        if z < 0.58 and mapv > 1 and (mapv == 3 or mapv == 2 or mapv == 15 or mapv == 8):
-            refx, refy, sh = enx, eny, .2
-            if  mapv%2 == 0:
-                refx, refy, sh = posx, posy, .8
-            if z> 0.45 and (x-refx)**2 + (y-refy)**2 + (z-0.5)**2 < 0.003 +abs(z-0.47)/30:
-                modr = modr*0.67 # head
-            if z < 0.45 and z > 0.28 and (x-refx)**2 + (y-refy)**2  < (z/10 - 0.02):
-                modr = modr*0.67 # chest
-            if z < 0.28 and (x-refx)**2 + (y-refy)**2 + (z-0.15)**2 < 0.023 :
-                modr = modr*0.67 #roller
-                    
-        if mapv > 0 and z <= mapv and mapv < 2:      
-            if maps[int(x)][int(y)]: # check spheres
-                if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
+    if z < mapv and mapv < 1:# if already hit something apply dark shade
+        if maps[int(x)][int(y)]:
+            if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.24):
+                modr = modr*0.49
+        else:
+            modr = modr*0.49
+    if modr > 0.5:
+        for k in range(1000):
+            if (mapv == 0) or not shot and ((z > mapv) or (z > 0.58 and mapv > 1)): ## LoDev DDA for optimization
+                x, y, z = lodev(x, y, z, cos, sin, sinz, maph, size)
+            x += cos; y += sin; z += sinz
+            mapv = maph[int(x)][int(y)]
+            if modr < 0.5 or z >1:
+                break
+            if shot and (mapv > 5 or (sinz > 0 and z > refz) or (sinz < 0 and z < refz)):
+                break
+            if z < 0.58 and mapv > 1 and (mapv == 3 or mapv == 2 or mapv == 15 or mapv == 8):
+                refx, refy, sh = enx, eny, .2
+                if  mapv%2 == 0:
+                    refx, refy, sh = posx, posy, .8
+                if z> 0.45 and (x-refx)**2 + (y-refy)**2 + (z-0.5)**2 < 0.003 +abs(z-0.47)/30:
+                    modr = modr*0.67 # head
+                if z < 0.45 and z > 0.28 and (x-refx)**2 + (y-refy)**2  < (z/10 - 0.02):
+                    modr = modr*0.67 # chest
+                if z < 0.28 and (x-refx)**2 + (y-refy)**2 + (z-0.15)**2 < 0.023 :
+                    modr = modr*0.67 #roller
+                        
+            if mapv > 0 and z <= mapv and mapv < 2:      
+                if maps[int(x)][int(y)]: # check spheres
+                    if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.25):
+                        modr = modr*0.9
+                else:
                     modr = modr*0.9
-            else:
-                modr = modr*0.9
     return modr
 
 @njit(cache=True)
@@ -508,8 +518,6 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
                size, checker, count, fb, fg, fr, sz=0, sz2=0, spin=0):
     
     inv, inv2, garbage, idx, move = (count%2), -(int(count/2)%2), not(not(count)), 0, move + spin/10
-    if move == 0 and sx > 0 or sx2 > 0:
-        move = 1e-16
     if spin > 0.04 or checker == 0:
         garbage = 0
     if checker == 2:
@@ -550,22 +558,18 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
                     if dtp > 7: # distant objects darker
                         modr = modr/np.log((dtp-6)/4+np.e)
                     if modr > 0.5:
+                        modr1 = shadow_ray(x, y, z, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, refx, refy, refz)
                         if sx != -1 or sx2 != -1: # change light source to fireball
-                            refx, refy, refz, shot, modr, c3 = sx2, sy2, sz2, 1, modr*0.7, c3*0.9
+                            if move == 0: #mark for smoothing
+                                move = 1e-16
+                            refx, refy, refz, shot, c3 = sx2, sy2, sz2, 1, c3*0.9
                             if sx != -1:
                                 refx, refy, refz = sx, sy, sz
-                        dtol = np.sqrt((x-refx)**2+(y-refy)**2+(z-refz)**2)
-                        cos, sin, sinz = .01*(refx-x)/dtol, .01*(refy-y)/dtol, .01*(refz-z)/dtol
-                        x += cos; y += sin; z += sinz # advance one step
-                        mapv = maph[int(x)][int(y)]
-                        if z < mapv and mapv < 1:# if already hit something apply dark shade
-                            if maps[int(x)][int(y)]:
-                                if ((x-int(x)-0.5)**2 + (y-int(y)-0.5)**2 + (z-int(z)-0.5)**2 < 0.24):
-                                    modr = modr*0.49
-                            else:
-                                modr = modr*0.49
-                        if modr > 0.5:
-                            modr = shadow_ray(x, y, z, cos, sin, sinz, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, refz)
+                            modr2 = shadow_ray(x, y, z, modr, shot, maps, enx, eny, posx, posy, posz, size, maph, refx, refy, refz)
+                            modr1 = (modr1+modr2)/2
+                        else:
+                            modr1 = 0.9*modr1
+                        modr = modr1
                         
                 c1, c2, c3 =  modr*np.sqrt(c1*c1r), modr*np.sqrt(c2*c2r), modr*np.sqrt(c3*c3r)                                                            
                  
@@ -586,11 +590,9 @@ def super_fast(width, height, mod, move, posx, posy, posz, rot, rot_v, mr, mg, m
         for j in range(height): #vertical loop        
             for i in range(width): #horizontal vision loop
                 if (i > 0 and i < width -1 and j > 0 and j < height -1 and idx%2 == inv):
-                    deltah = abs(pr[idx-1] - pr[idx+1]) + abs(pg[idx-1] - pg[idx+1]) + abs(pb[idx-1] - pb[idx+1])
-                    deltav = abs(pr[idx-width] - pr[idx+width]) + abs(pg[idx-width] - pg[idx+width]) + abs(pb[idx-width] - pb[idx+width])
-                    if deltah < 0.15 and deltav > 0.15: # fill horizontally
+                    if abs(pr[idx-1] - pr[idx+1]) + abs(pg[idx-1] - pg[idx+1]) + abs(pb[idx-1] - pb[idx+1]) < 0.15: # fill horizontally
                         pr[idx], pg[idx], pb[idx]  = (pr[idx-1] + pr[idx+1])/2, (pg[idx-1] + pg[idx+1])/2, (pb[idx-1] + pb[idx+1])/2
-                    elif  deltav < 0.15 and deltah > 0.15: # fill vertically
+                    elif  abs(pr[idx-width] - pr[idx+width]) + abs(pg[idx-width] - pg[idx+width]) + abs(pb[idx-width] - pb[idx+width]) < 0.15: # fill vertically
                         pr[idx], pg[idx], pb[idx] = (pr[idx-width] + pr[idx+width])/2, (pg[idx-width] + pg[idx+width])/2, (pb[idx-width] + pb[idx+width])/2
                     else: # smooth filling
                         pr[idx] = (pr[idx]*garbage + pr[idx-1] + pr[idx-width] + pr[idx+width] + pr[idx+1])/(4+garbage)
@@ -730,7 +732,7 @@ def adjust_resol(width):
 @njit(cache=True)
 def pixelize(rr, gg, bb, height, width):
     pixels = np.dstack((rr,gg,bb))
-    pixels = pixels/max(0.85, np.sqrt(pixels.max()))
+##    pixels = pixels/max(0.85, np.sqrt(pixels.max()))
     pixels = np.reshape(pixels*255, (height,width,3))
     return pixels
         
