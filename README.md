@@ -1,8 +1,7 @@
 # PytracingMaze
 
 MOST RECENT VERSION: [Pytracing Maze.py](https://github.com/FinFetChannel/PytracingMaze/blob/main/Pytracing%20Maze.py)
-<iframe src="https://itch.io/embed/1126594" width="552" height="167" frameborder="0"><a href="https://finfetchannel.itch.io/pytracing-maze">Pytracing Maze by FinFET channel</a></iframe>
-
+Also, executable for Windows available on [itch.io](https://finfetchannel.itch.io/pytracing-maze)
 Simple ray tracing game in Python, based on my [ray casting project](https://github.com/FinFetChannel/RayCastingPythonMaze). As you may have guessed, things started to get a bit heavy for Python, so i had to resort to the Numba library, improving performance by 100x.
 
 First video - 3D ray casting (proto ray tracing): https://www.youtube.com/watch?v=ravnXknUvvQ
